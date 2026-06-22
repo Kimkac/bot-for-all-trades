@@ -17,6 +17,7 @@ import { Route as AuthenticatedExchangesRouteImport } from './routes/_authentica
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedBotsRouteImport } from './routes/_authenticated/bots'
 import { Route as ApiPublicBotTickRouteImport } from './routes/api/public/bot-tick'
+import { Route as AuthenticatedBotsBotIdRouteImport } from './routes/_authenticated/bots.$botId'
 
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
@@ -57,23 +58,30 @@ const ApiPublicBotTickRoute = ApiPublicBotTickRouteImport.update({
   path: '/api/public/bot-tick',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedBotsBotIdRoute = AuthenticatedBotsBotIdRouteImport.update({
+  id: '/$botId',
+  path: '/$botId',
+  getParentRoute: () => AuthenticatedBotsRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
-  '/bots': typeof AuthenticatedBotsRoute
+  '/bots': typeof AuthenticatedBotsRouteWithChildren
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/exchanges': typeof AuthenticatedExchangesRoute
+  '/bots/$botId': typeof AuthenticatedBotsBotIdRoute
   '/api/public/bot-tick': typeof ApiPublicBotTickRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
-  '/bots': typeof AuthenticatedBotsRoute
+  '/bots': typeof AuthenticatedBotsRouteWithChildren
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/exchanges': typeof AuthenticatedExchangesRoute
+  '/bots/$botId': typeof AuthenticatedBotsBotIdRoute
   '/api/public/bot-tick': typeof ApiPublicBotTickRoute
 }
 export interface FileRoutesById {
@@ -82,9 +90,10 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
-  '/_authenticated/bots': typeof AuthenticatedBotsRoute
+  '/_authenticated/bots': typeof AuthenticatedBotsRouteWithChildren
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/exchanges': typeof AuthenticatedExchangesRoute
+  '/_authenticated/bots/$botId': typeof AuthenticatedBotsBotIdRoute
   '/api/public/bot-tick': typeof ApiPublicBotTickRoute
 }
 export interface FileRouteTypes {
@@ -96,6 +105,7 @@ export interface FileRouteTypes {
     | '/bots'
     | '/dashboard'
     | '/exchanges'
+    | '/bots/$botId'
     | '/api/public/bot-tick'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -105,6 +115,7 @@ export interface FileRouteTypes {
     | '/bots'
     | '/dashboard'
     | '/exchanges'
+    | '/bots/$botId'
     | '/api/public/bot-tick'
   id:
     | '__root__'
@@ -115,6 +126,7 @@ export interface FileRouteTypes {
     | '/_authenticated/bots'
     | '/_authenticated/dashboard'
     | '/_authenticated/exchanges'
+    | '/_authenticated/bots/$botId'
     | '/api/public/bot-tick'
   fileRoutesById: FileRoutesById
 }
@@ -184,17 +196,35 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicBotTickRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/bots/$botId': {
+      id: '/_authenticated/bots/$botId'
+      path: '/$botId'
+      fullPath: '/bots/$botId'
+      preLoaderRoute: typeof AuthenticatedBotsBotIdRouteImport
+      parentRoute: typeof AuthenticatedBotsRoute
+    }
   }
 }
 
+interface AuthenticatedBotsRouteChildren {
+  AuthenticatedBotsBotIdRoute: typeof AuthenticatedBotsBotIdRoute
+}
+
+const AuthenticatedBotsRouteChildren: AuthenticatedBotsRouteChildren = {
+  AuthenticatedBotsBotIdRoute: AuthenticatedBotsBotIdRoute,
+}
+
+const AuthenticatedBotsRouteWithChildren =
+  AuthenticatedBotsRoute._addFileChildren(AuthenticatedBotsRouteChildren)
+
 interface AuthenticatedRouteRouteChildren {
-  AuthenticatedBotsRoute: typeof AuthenticatedBotsRoute
+  AuthenticatedBotsRoute: typeof AuthenticatedBotsRouteWithChildren
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedExchangesRoute: typeof AuthenticatedExchangesRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
-  AuthenticatedBotsRoute: AuthenticatedBotsRoute,
+  AuthenticatedBotsRoute: AuthenticatedBotsRouteWithChildren,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedExchangesRoute: AuthenticatedExchangesRoute,
 }

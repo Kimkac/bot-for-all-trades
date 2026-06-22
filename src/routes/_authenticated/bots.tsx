@@ -101,12 +101,12 @@ function BotsPage() {
               return (
                 <Card key={b.id} className="flex flex-col gap-3 p-5">
                   <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
+                    <Link to="/bots/$botId" params={{ botId: b.id }} className="min-w-0 hover:underline">
                       <div className="truncate font-medium">{b.name}</div>
                       <div className="font-mono text-xs text-muted-foreground">
                         {b.symbol} · {b.timeframe} · {strat?.label ?? b.strategy}
                       </div>
-                    </div>
+                    </Link>
                     <div className="flex flex-col items-end gap-1">
                       <Badge variant={running ? "default" : b.status === "error" ? "destructive" : "secondary"} className="text-[10px] uppercase">
                         {b.status}
