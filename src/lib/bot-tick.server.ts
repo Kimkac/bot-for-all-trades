@@ -84,7 +84,7 @@ export async function runOneBot(botId: string): Promise<{ ok: true; signal: stri
           await supabaseAdmin.from("trades").insert({
             bot_id: bot.id, user_id: bot.user_id,
             side: decision.signal, qty: fill.filledQty, price: fill.avgPrice || decision.price,
-            order_id: fill.orderId, status: "filled", raw: fill.raw as object,
+            order_id: fill.orderId, status: "filled", raw: fill.raw as never,
           });
         } catch (e) {
           await supabaseAdmin.from("trades").insert({
