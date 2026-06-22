@@ -1,0 +1,247 @@
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useEffect, useRef } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { toast } from "sonner";
+import { ArrowLeft, Loader2, Play, RefreshCw, Square, Zap } from "lucide-react";
+import {
+  createChart, CandlestickSeries, LineSeries, type IChartApi,
+} from "lightweight-charts";
+import { PageHeader } from "@/components/AppShell";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { getBot, getBotActivity, getCandles, runBotTickNow, setBotStatus } from "@/lib/bots.functions";
+import { STRATEGIES, type StrategyKind } from "@/lib/strategies/types";
+
+export const Route = createFileRoute("/_authenticated/bots/$botId")({
+  head: () => ({ meta: [{ title: "Bot — Tradedesk" }] }),
+  component: BotDetailPage,
+});
+
+function BotDetailPage() {
+  const { botId } = Route.useParams();
+  const navigate = useNavigate();
+  const qc = useQueryClient();
+  const fetchBot = useServerFn(getBot);
+  const fetchActivity = useServerFn(getBotActivity);
+  const fetchCandles = useServerFn(getCandles);
+  const setStatus = useServerFn(setBotStatus);
+  const tickNow = useServerFn(runBotTickNow);
+
+  const { data: bot, isLoading } = useQuery({
+    queryKey: ["bot", botId],
+    queryFn: () => fetchBot({ data: { id: botId } }),
+  });
+  const { data: activity } = useQuery({
+    queryKey: ["bot-activity", botId],
+    queryFn: () => fetchActivity({ data: { id: botId } }),
+    refetchInterval: 15_000,
+  });
+  const { data: candles } = useQuery({
+    queryKey: ["bot-candles", botId],
+    queryFn: () => fetchCandles({ data: { id: botId, limit: 200 } }),
+    refetchInterval: 30_000,
+  });
+
+  const startStop = useMutation({
+    mutationFn: (running: boolean) => setStatus({ data: { id: botId, running } }),
+    onSuccess: (_d, running) => {
+      toast.success(running ? "Bot started" : "Bot stopped");
+      qc.invalidateQueries({ queryKey: ["bot", botId] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const tick = useMutation({
+    mutationFn: () => tickNow({ data: { id: botId } }),
+    onSuccess: (r) => {
+      if (r.ok) toast.success(`Tick: ${r.signal} — ${r.reason}`);
+      else toast.error(r.error);
+      qc.invalidateQueries({ queryKey: ["bot-activity", botId] });
+      qc.invalidateQueries({ queryKey: ["bot-candles", botId] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  if (isLoading || !bot) {
+    return (
+      <div className="grid min-h-[60vh] place-items-center"><Loader2 className="h-5 w-5 animate-spin" /></div>
+    );
+  }
+
+  const strat = STRATEGIES[bot.strategy as StrategyKind];
+  const running = bot.status === "running";
+
+  return (
+    <>
+      <PageHeader
+        title={bot.name}
+        description={`${bot.symbol} · ${bot.timeframe} · ${strat?.label ?? bot.strategy}`}
+        actions={
+          <div className="flex gap-2">
+            <Button variant="ghost" onClick={() => navigate({ to: "/bots" })}>
+              <ArrowLeft className="mr-1.5 h-4 w-4" /> Back
+            </Button>
+            <Button variant="outline" onClick={() => tick.mutate()} disabled={tick.isPending}>
+              {tick.isPending ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Zap className="mr-1.5 h-4 w-4" />}
+              Tick now
+            </Button>
+            {running ? (
+              <Button variant="outline" onClick={() => startStop.mutate(false)}>
+                <Square className="mr-1.5 h-4 w-4" /> Stop
+              </Button>
+            ) : (
+              <Button onClick={() => startStop.mutate(true)}>
+                <Play className="mr-1.5 h-4 w-4" /> Start
+              </Button>
+            )}
+          </div>
+        }
+      />
+      <div className="grid gap-4 p-8 xl:grid-cols-3">
+        <Card className="p-4 xl:col-span-2">
+          <div className="mb-2 flex items-center justify-between">
+            <div className="font-mono text-xs uppercase tracking-wider text-muted-foreground">Price</div>
+            <Badge variant={running ? "default" : "secondary"} className="text-[10px] uppercase">{bot.status}</Badge>
+          </div>
+          <PriceChart
+            candles={candles && "ok" in candles && candles.ok ? candles.candles : []}
+            error={candles && "ok" in candles && !candles.ok ? candles.error : null}
+          />
+        </Card>
+
+        <Card className="p-4">
+          <div className="mb-2 font-mono text-xs uppercase tracking-wider text-muted-foreground">Equity</div>
+          <EquityChart points={activity?.equity ?? []} />
+        </Card>
+
+        <Card className="p-4 xl:col-span-2">
+          <div className="mb-3 flex items-center justify-between">
+            <div className="font-mono text-xs uppercase tracking-wider text-muted-foreground">Trades</div>
+            <Link to="/bots" className="text-xs text-muted-foreground hover:underline">All bots →</Link>
+          </div>
+          {!activity?.trades.length ? (
+            <div className="py-6 text-center text-sm text-muted-foreground">No trades yet.</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="text-left font-mono text-xs uppercase text-muted-foreground">
+                  <tr><th className="py-1.5">Time</th><th>Side</th><th className="text-right">Qty</th><th className="text-right">Price</th><th>Status</th></tr>
+                </thead>
+                <tbody>
+                  {activity.trades.map((t) => (
+                    <tr key={t.id} className="border-t border-border/40">
+                      <td className="py-1.5 font-mono text-xs">{new Date(t.ts).toLocaleString()}</td>
+                      <td>
+                        <Badge variant={t.side === "buy" ? "default" : "destructive"} className="text-[10px] uppercase">
+                          {t.side}
+                        </Badge>
+                      </td>
+                      <td className="text-right font-mono">{Number(t.qty)}</td>
+                      <td className="text-right font-mono">{Number(t.price).toFixed(4)}</td>
+                      <td className="text-xs">{t.status}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </Card>
+
+        <Card className="p-4">
+          <div className="mb-3 font-mono text-xs uppercase tracking-wider text-muted-foreground">Recent signals</div>
+          {!activity?.signals.length ? (
+            <div className="py-6 text-center text-sm text-muted-foreground">No signals yet.</div>
+          ) : (
+            <ul className="space-y-2">
+              {activity.signals.slice(0, 12).map((s) => (
+                <li key={s.id} className="flex items-start gap-2 text-xs">
+                  <Badge variant={s.kind === "buy" ? "default" : s.kind === "sell" ? "destructive" : "secondary"} className="text-[10px] uppercase">
+                    {s.kind}
+                  </Badge>
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-foreground">{s.reason}</div>
+                    <div className="font-mono text-[10px] text-muted-foreground">
+                      {new Date(s.ts).toLocaleString()} · {s.price ? Number(s.price).toFixed(4) : "—"}
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
+      </div>
+    </>
+  );
+}
+
+function PriceChart({ candles, error }: { candles: Array<{ time: number; open: number; high: number; low: number; close: number }>; error: string | null }) {
+  const ref = useRef<HTMLDivElement | null>(null);
+  const chartRef = useRef<IChartApi | null>(null);
+
+  useEffect(() => {
+    if (!ref.current) return;
+    const chart = createChart(ref.current, {
+      autoSize: true,
+      layout: { background: { color: "transparent" }, textColor: "rgba(255,255,255,0.6)" },
+      grid: { vertLines: { color: "rgba(255,255,255,0.05)" }, horzLines: { color: "rgba(255,255,255,0.05)" } },
+      timeScale: { timeVisible: true, secondsVisible: false },
+      rightPriceScale: { borderVisible: false },
+    });
+    chartRef.current = chart;
+    return () => { chart.remove(); chartRef.current = null; };
+  }, []);
+
+  useEffect(() => {
+    if (!chartRef.current || candles.length === 0) return;
+    const series = chartRef.current.addSeries(CandlestickSeries, {
+      upColor: "#22c55e", downColor: "#ef4444", borderVisible: false,
+      wickUpColor: "#22c55e", wickDownColor: "#ef4444",
+    });
+    series.setData(candles.map((c) => ({ time: c.time as never, open: c.open, high: c.high, low: c.low, close: c.close })));
+    chartRef.current.timeScale().fitContent();
+    return () => { try { chartRef.current?.removeSeries(series); } catch { /* ignore */ } };
+  }, [candles]);
+
+  return (
+    <div className="relative h-[360px] w-full">
+      <div ref={ref} className="h-full w-full" />
+      {error && <div className="absolute inset-0 grid place-items-center text-xs text-destructive">{error}</div>}
+      {!error && candles.length === 0 && (
+        <div className="absolute inset-0 grid place-items-center text-xs text-muted-foreground">
+          <RefreshCw className="h-4 w-4 animate-spin" />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function EquityChart({ points }: { points: Array<{ equity: number; ts: string }> }) {
+  const ref = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (!ref.current) return;
+    const chart = createChart(ref.current, {
+      autoSize: true,
+      layout: { background: { color: "transparent" }, textColor: "rgba(255,255,255,0.6)" },
+      grid: { vertLines: { color: "rgba(255,255,255,0.05)" }, horzLines: { color: "rgba(255,255,255,0.05)" } },
+      timeScale: { timeVisible: true, secondsVisible: false },
+      rightPriceScale: { borderVisible: false },
+    });
+    const series = chart.addSeries(LineSeries, { color: "#3b82f6", lineWidth: 2 });
+    if (points.length) {
+      series.setData(
+        points.map((p) => ({ time: Math.floor(new Date(p.ts).getTime() / 1000) as never, value: Number(p.equity) })),
+      );
+      chart.timeScale().fitContent();
+    }
+    return () => chart.remove();
+  }, [points]);
+  return (
+    <div className="relative h-[360px] w-full">
+      <div ref={ref} className="h-full w-full" />
+      {points.length === 0 && (
+        <div className="absolute inset-0 grid place-items-center text-xs text-muted-foreground">No equity data yet</div>
+      )}
+    </div>
+  );
+}
