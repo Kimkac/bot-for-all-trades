@@ -102,3 +102,80 @@ export const deleteBot = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true as const };
   });
+
+export const getBotActivity = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const [signals, trades, equity] = await Promise.all([
+      context.supabase
+        .from("signals")
+        .select("id, kind, price, reason, ts")
+        .eq("bot_id", data.id)
+        .order("ts", { ascending: false })
+        .limit(50),
+      context.supabase
+        .from("trades")
+        .select("id, side, qty, price, status, ts, order_id")
+        .eq("bot_id", data.id)
+        .order("ts", { ascending: false })
+        .limit(50),
+      context.supabase
+        .from("equity_snapshots")
+        .select("equity, pnl, ts")
+        .eq("bot_id", data.id)
+        .order("ts", { ascending: true })
+        .limit(500),
+    ]);
+    if (signals.error) throw new Error(signals.error.message);
+    if (trades.error) throw new Error(trades.error.message);
+    if (equity.error) throw new Error(equity.error.message);
+    return {
+      signals: signals.data ?? [],
+      trades: trades.data ?? [],
+      equity: equity.data ?? [],
+    };
+  });
+
+export const runBotTickNow = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    // Verify ownership through RLS-safe read first.
+    const { data: own, error } = await context.supabase
+      .from("bots").select("id").eq("id", data.id).maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!own) throw new Error("Bot not found");
+    const { runOneBot } = await import("./bot-tick.server");
+    const r = await runOneBot(data.id);
+    return r;
+  });
+
+export const getCandles = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({ id: z.string().uuid(), limit: z.number().int().min(10).max(500).default(200) }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { data: bot, error } = await context.supabase
+      .from("bots")
+      .select("symbol, timeframe, exchange_accounts(exchange, mode, api_key_enc, api_secret_enc, passphrase_enc)")
+      .eq("id", data.id)
+      .single();
+    if (error || !bot) throw new Error(error?.message ?? "Bot not found");
+    const acct = Array.isArray(bot.exchange_accounts) ? bot.exchange_accounts[0] : bot.exchange_accounts;
+    if (!acct) throw new Error("Account missing");
+    const { decryptSecret } = await import("./crypto.server");
+    const { createAdapter } = await import("./exchanges/adapters.server");
+    const adapter = createAdapter(acct.exchange as never, acct.mode as never, {
+      apiKey: decryptSecret(acct.api_key_enc),
+      apiSecret: decryptSecret(acct.api_secret_enc),
+      passphrase: acct.passphrase_enc ? decryptSecret(acct.passphrase_enc) : undefined,
+    });
+    try {
+      const candles = await adapter.getCandles(bot.symbol, bot.timeframe, data.limit);
+      return { ok: true as const, candles };
+    } catch (e) {
+      return { ok: false as const, error: e instanceof Error ? e.message : "candles failed" };
+    }
+  });
