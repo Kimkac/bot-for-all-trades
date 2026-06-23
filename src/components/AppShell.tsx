@@ -1,5 +1,5 @@
 import { Link, Outlet, useLocation, useNavigate } from "@tanstack/react-router";
-import { Activity, LayoutDashboard, Plug, Bot, LogOut } from "lucide-react";
+import { Activity, LayoutDashboard, Plug, Bot, LogOut, CreditCard } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
@@ -8,6 +8,7 @@ const NAV = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/exchanges", label: "Exchanges", icon: Plug },
   { to: "/bots", label: "Bots", icon: Bot },
+  { to: "/billing", label: "Plans", icon: CreditCard },
 ] as const;
 
 export function AppShell() {
