@@ -59,6 +59,8 @@ function BotDetailPage() {
       else toast.error(r.error);
       qc.invalidateQueries({ queryKey: ["bot-activity", botId] });
       qc.invalidateQueries({ queryKey: ["bot-candles", botId] });
+      qc.invalidateQueries({ queryKey: ["bot", botId] });
+      qc.invalidateQueries({ queryKey: ["portfolio-overview"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -71,6 +73,9 @@ function BotDetailPage() {
 
   const strat = STRATEGIES[bot.strategy as StrategyKind];
   const running = bot.status === "running";
+  const stats = activity?.stats;
+  const fmt = (n: number) => `${n < 0 ? "-" : ""}$${Math.abs(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const riskBreached = stats && bot.max_daily_loss > 0 && stats.daily_loss >= bot.max_daily_loss;
 
   return (
     <>
@@ -99,6 +104,41 @@ function BotDetailPage() {
         }
       />
       <div className="grid gap-4 p-8 xl:grid-cols-3">
+        {(riskBreached || bot.last_error) && (
+          <Card className="border-destructive/40 bg-destructive/10 p-4 xl:col-span-3">
+            <div className="flex items-center gap-2 text-sm text-destructive">
+              ⚠ {riskBreached
+                ? `Daily loss ${fmt(stats!.daily_loss)} reached limit ${fmt(Number(bot.max_daily_loss))} — bot auto-stopped.`
+                : bot.last_error}
+            </div>
+          </Card>
+        )}
+
+        {stats && (
+          <div className="grid gap-3 sm:grid-cols-4 xl:col-span-3">
+            <Card className="p-4">
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Total P&L</div>
+              <div className={`mt-1 font-mono text-2xl ${stats.total >= 0 ? "text-emerald-400" : "text-destructive"}`}>{fmt(stats.total)}</div>
+              <div className="text-[10px] text-muted-foreground">Realized {fmt(stats.realized)} · Unrl {fmt(stats.unrealized)}</div>
+            </Card>
+            <Card className="p-4">
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Position</div>
+              <div className="mt-1 font-mono text-2xl">{stats.position}</div>
+              <div className="text-[10px] text-muted-foreground">Avg cost {stats.cost_basis ? stats.cost_basis.toFixed(4) : "—"}</div>
+            </Card>
+            <Card className="p-4">
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Win rate</div>
+              <div className="mt-1 font-mono text-2xl">{stats.wins + stats.losses > 0 ? `${(stats.win_rate * 100).toFixed(0)}%` : "—"}</div>
+              <div className="text-[10px] text-muted-foreground">{stats.wins}W / {stats.losses}L · {stats.trades_count} trades</div>
+            </Card>
+            <Card className="p-4">
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Today</div>
+              <div className={`mt-1 font-mono text-2xl ${stats.daily_realized >= 0 ? "text-emerald-400" : "text-destructive"}`}>{fmt(stats.daily_realized)}</div>
+              <div className="text-[10px] text-muted-foreground">{stats.trades_today} trades · loss cap {bot.max_daily_loss ? fmt(Number(bot.max_daily_loss)) : "off"}</div>
+            </Card>
+          </div>
+        )}
+
         <Card className="p-4 xl:col-span-2">
           <div className="mb-2 flex items-center justify-between">
             <div className="font-mono text-xs uppercase tracking-wider text-muted-foreground">Price</div>
