@@ -26,18 +26,33 @@ interface BotRow {
 async function getPositionAndLastBuy(botId: string) {
   const { data: trades } = await supabaseAdmin
     .from("trades")
-    .select("side, qty, ts")
+    .select("side, qty, price, ts")
     .eq("bot_id", botId)
     .eq("status", "filled")
     .order("ts", { ascending: true });
   let pos = 0;
   let lastBuyTs: number | null = null;
+  let costBasis = 0;
+  let dailyRealized = 0;
+  const startOfDay = new Date(); startOfDay.setHours(0, 0, 0, 0);
   for (const t of trades ?? []) {
     const q = Number(t.qty);
-    if (t.side === "buy") { pos += q; lastBuyTs = Math.floor(new Date(t.ts).getTime() / 1000); }
-    else pos -= q;
+    const p = Number(t.price);
+    const isToday = new Date(t.ts) >= startOfDay;
+    if (t.side === "buy") {
+      const newPos = pos + q;
+      costBasis = newPos > 0 ? (costBasis * pos + p * q) / newPos : 0;
+      pos = newPos;
+      lastBuyTs = Math.floor(new Date(t.ts).getTime() / 1000);
+    } else {
+      const closeQty = Math.min(q, pos);
+      const pnl = (p - costBasis) * closeQty;
+      if (isToday) dailyRealized += pnl;
+      pos -= closeQty;
+      if (pos <= 0) { pos = 0; costBasis = 0; }
+    }
   }
-  return { position: pos, lastBuyTs };
+  return { position: pos, lastBuyTs, dailyRealized };
 }
 
 export async function runOneBot(botId: string): Promise<{ ok: true; signal: string; reason: string } | { ok: false; error: string }> {
@@ -59,7 +74,23 @@ export async function runOneBot(botId: string): Promise<{ ok: true; signal: stri
     });
 
     const candles = await adapter.getCandles(bot.symbol, bot.timeframe, 200);
-    const { position, lastBuyTs } = await getPositionAndLastBuy(bot.id);
+    const { position, lastBuyTs, dailyRealized } = await getPositionAndLastBuy(bot.id);
+
+    // ----- Risk: daily loss guard -----
+    const dailyLoss = Math.max(0, -dailyRealized);
+    if (bot.max_daily_loss > 0 && dailyLoss >= bot.max_daily_loss) {
+      const msg = `Risk: daily loss ${dailyLoss.toFixed(2)} reached limit ${bot.max_daily_loss}`;
+      await supabaseAdmin.from("signals").insert({
+        bot_id: bot.id, user_id: bot.user_id,
+        kind: "hold", price: null, reason: msg,
+      });
+      await supabaseAdmin.from("bots").update({
+        last_tick_at: new Date().toISOString(),
+        last_error: msg,
+        status: "stopped",
+      }).eq("id", bot.id);
+      return { ok: false, error: msg };
+    }
 
     const decision = evaluate(bot.strategy as StrategyKind, {
       candles, position, lastBuyTs, params: bot.params,
