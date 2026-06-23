@@ -130,10 +130,63 @@ export const getBotActivity = createServerFn({ method: "POST" })
     if (signals.error) throw new Error(signals.error.message);
     if (trades.error) throw new Error(trades.error.message);
     if (equity.error) throw new Error(equity.error.message);
+
+    // Compute per-bot stats from filled trades (chronological).
+    const filled = (trades.data ?? [])
+      .filter((t) => t.status === "filled")
+      .slice()
+      .sort((a, b) => new Date(a.ts).getTime() - new Date(b.ts).getTime());
+    let position = 0;
+    let costBasis = 0;
+    let realized = 0;
+    let wins = 0;
+    let losses = 0;
+    let lastPrice = 0;
+    const startOfDay = new Date(); startOfDay.setHours(0, 0, 0, 0);
+    let dailyRealized = 0;
+    let tradesToday = 0;
+    for (const t of filled) {
+      const qty = Number(t.qty);
+      const price = Number(t.price);
+      lastPrice = price;
+      const isToday = new Date(t.ts) >= startOfDay;
+      if (isToday) tradesToday += 1;
+      if (t.side === "buy") {
+        const newPos = position + qty;
+        costBasis = newPos > 0 ? (costBasis * position + price * qty) / newPos : 0;
+        position = newPos;
+      } else {
+        const closeQty = Math.min(qty, position);
+        const pnl = (price - costBasis) * closeQty;
+        realized += pnl;
+        if (isToday) dailyRealized += pnl;
+        if (pnl > 0) wins += 1; else if (pnl < 0) losses += 1;
+        position -= closeQty;
+        if (position <= 0) { position = 0; costBasis = 0; }
+      }
+    }
+    const unrealized = position > 0 && lastPrice > 0 ? (lastPrice - costBasis) * position : 0;
+    const totalClosed = wins + losses;
+    const stats = {
+      realized,
+      unrealized,
+      total: realized + unrealized,
+      position,
+      cost_basis: costBasis,
+      last_price: lastPrice,
+      wins, losses,
+      win_rate: totalClosed > 0 ? wins / totalClosed : 0,
+      trades_count: filled.length,
+      trades_today: tradesToday,
+      daily_realized: dailyRealized,
+      daily_loss: Math.max(0, -dailyRealized),
+    };
+
     return {
       signals: signals.data ?? [],
       trades: trades.data ?? [],
       equity: equity.data ?? [],
+      stats,
     };
   });
 
