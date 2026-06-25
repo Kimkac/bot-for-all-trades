@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import type {} from "@tanstack/react-start";
 
-const BASE_URL = "";
+const BASE_URL = "https://bot-for-all-trades.lovable.app";
 
 export const Route = createFileRoute("/sitemap.xml")({
   server: {
@@ -10,6 +10,10 @@ export const Route = createFileRoute("/sitemap.xml")({
         const entries = [
           { path: "/", changefreq: "weekly", priority: "1.0" },
           { path: "/auth", changefreq: "monthly", priority: "0.5" },
+          { path: "/dashboard", changefreq: "daily", priority: "0.7" },
+          { path: "/bots", changefreq: "daily", priority: "0.7" },
+          { path: "/exchanges", changefreq: "monthly", priority: "0.6" },
+          { path: "/billing", changefreq: "monthly", priority: "0.5" },
         ];
         const urls = entries.map(
           (e) =>
