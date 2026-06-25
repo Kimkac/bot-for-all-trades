@@ -1,0 +1,8 @@
+# Tradedesk
+
+> Multi-exchange trading bot terminal. Connect Binance, Coinbase, or Alpaca — live or demo — and run configurable strategies (SMA crossover, RSI, grid, DCA) from a single dashboard.
+
+## Pages
+
+- [Home](/): Product overview, features, and getting started.
+- [Sign in](/auth): Sign in or create a Tradedesk account.

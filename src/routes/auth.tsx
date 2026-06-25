@@ -61,6 +61,7 @@ function AuthPage() {
         </Link>
 
         <div className="rounded-xl border border-border bg-card p-6 shadow-2xl">
+          <h1 className="mb-4 text-center text-lg font-semibold tracking-tight">Sign in to Tradedesk</h1>
           <Tabs defaultValue="signin">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="signin">Sign in</TabsTrigger>

@@ -84,11 +84,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Tradedesk — multi-exchange trading bots" },
-      { name: "description", content: "Run configurable trading bots on Binance, Coinbase, and Alpaca — live or demo — from one terminal." },
-      { property: "og:title", content: "Tradedesk — multi-exchange trading bots" },
-      { property: "og:description", content: "Run configurable trading bots on Binance, Coinbase, and Alpaca — live or demo — from one terminal." },
       { property: "og:type", content: "website" },
+      { property: "og:site_name", content: "Tradedesk" },
       { name: "twitter:card", content: "summary" },
     ],
     links: [
