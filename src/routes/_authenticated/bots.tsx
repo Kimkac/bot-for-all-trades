@@ -136,7 +136,7 @@ function BotsPage() {
                         <Play className="mr-1.5 h-3.5 w-3.5" /> Start
                       </Button>
                     )}
-                    <Button size="sm" variant="ghost" onClick={() => {
+                    <Button size="sm" variant="ghost" aria-label="Delete bot" onClick={() => {
                       if (confirm(`Delete bot "${b.name}"?`)) del.mutate(b.id);
                     }}>
                       <Trash2 className="h-3.5 w-3.5" />
