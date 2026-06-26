@@ -1,9 +1,9 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { ArrowLeft, Loader2, Play, RefreshCw, Square, Zap } from "lucide-react";
+import { ArrowLeft, FlaskConical, Loader2, Play, RefreshCw, Square, Zap } from "lucide-react";
 import {
   createChart, CandlestickSeries, LineSeries, type IChartApi,
 } from "lightweight-charts";
@@ -11,7 +11,13 @@ import { PageHeader } from "@/components/AppShell";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
 import { getBot, getBotActivity, getCandles, runBotTickNow, setBotStatus } from "@/lib/bots.functions";
+import { runBacktest } from "@/lib/backtest.functions";
 import { STRATEGIES, type StrategyKind } from "@/lib/strategies/types";
 
 export const Route = createFileRoute("/_authenticated/bots/$botId")({
@@ -28,6 +34,7 @@ function BotDetailPage() {
   const fetchCandles = useServerFn(getCandles);
   const setStatus = useServerFn(setBotStatus);
   const tickNow = useServerFn(runBotTickNow);
+  const [backtestOpen, setBacktestOpen] = useState(false);
 
   const { data: bot, isLoading } = useQuery({
     queryKey: ["bot", botId],
@@ -90,6 +97,9 @@ function BotDetailPage() {
             <Button variant="outline" onClick={() => tick.mutate()} disabled={tick.isPending}>
               {tick.isPending ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Zap className="mr-1.5 h-4 w-4" />}
               Tick now
+            </Button>
+            <Button variant="outline" onClick={() => setBacktestOpen(true)}>
+              <FlaskConical className="mr-1.5 h-4 w-4" /> Backtest
             </Button>
             {running ? (
               <Button variant="outline" onClick={() => startStop.mutate(false)}>
@@ -211,6 +221,7 @@ function BotDetailPage() {
           )}
         </Card>
       </div>
+      <BacktestDialog open={backtestOpen} onOpenChange={setBacktestOpen} botId={botId} />
     </>
   );
 }
@@ -282,6 +293,101 @@ function EquityChart({ points }: { points: Array<{ equity: number; ts: string }>
       {points.length === 0 && (
         <div className="absolute inset-0 grid place-items-center text-xs text-muted-foreground">No equity data yet</div>
       )}
+    </div>
+  );
+}
+
+function BacktestDialog({ open, onOpenChange, botId }: { open: boolean; onOpenChange: (v: boolean) => void; botId: string }) {
+  const run = useServerFn(runBacktest);
+  const [limit, setLimit] = useState(300);
+  const [feeBps, setFeeBps] = useState(10);
+  const mut = useMutation({
+    mutationFn: () => run({ data: { id: botId, limit, fee_bps: feeBps } }),
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const result = mut.data;
+  const fmt = (n: number) => `${n < 0 ? "-" : ""}$${Math.abs(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => { onOpenChange(v); if (!v) mut.reset(); }}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Backtest strategy</DialogTitle>
+          <DialogDescription>
+            Replay this bot's strategy over recent historical candles. No live orders are placed.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="space-y-1.5">
+            <Label htmlFor="bt-limit">Candles</Label>
+            <Input id="bt-limit" type="number" min={50} max={500} value={limit}
+              onChange={(e) => setLimit(Math.max(50, Math.min(500, Number(e.target.value) || 0)))}
+              className="font-mono" />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="bt-fee">Fee (bps)</Label>
+            <Input id="bt-fee" type="number" min={0} max={100} value={feeBps}
+              onChange={(e) => setFeeBps(Math.max(0, Math.min(100, Number(e.target.value) || 0)))}
+              className="font-mono" />
+            <p className="text-xs text-muted-foreground">10 bps = 0.10% per fill.</p>
+          </div>
+        </div>
+
+        {result && (result.ok ? (
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              <Stat label="Net P&L" value={fmt(result.total)} tone={result.total >= 0 ? "up" : "down"} />
+              <Stat label="Trades" value={String(result.trades_count)} />
+              <Stat label="Win rate" value={result.wins + result.losses > 0 ? `${(result.win_rate * 100).toFixed(0)}%` : "—"} />
+              <Stat label="Max DD" value={fmt(result.max_drawdown)} tone="down" />
+            </div>
+            <div className="font-mono text-[11px] text-muted-foreground">
+              {new Date(result.from * 1000).toLocaleString()} → {new Date(result.to * 1000).toLocaleString()} · {result.candles_used} candles
+            </div>
+            {result.trades.length > 0 && (
+              <div className="max-h-48 overflow-y-auto rounded border border-border/40">
+                <table className="w-full text-xs">
+                  <thead className="sticky top-0 bg-muted/60 text-left font-mono uppercase text-muted-foreground">
+                    <tr><th className="px-2 py-1">Time</th><th>Side</th><th className="text-right">Qty</th><th className="text-right">Price</th><th className="text-right">PnL</th></tr>
+                  </thead>
+                  <tbody>
+                    {result.trades.slice().reverse().map((t, i) => (
+                      <tr key={i} className="border-t border-border/40">
+                        <td className="px-2 py-1 font-mono">{new Date(t.time * 1000).toLocaleString()}</td>
+                        <td><Badge variant={t.side === "buy" ? "default" : "destructive"} className="text-[10px] uppercase">{t.side}</Badge></td>
+                        <td className="text-right font-mono">{t.qty.toFixed(4)}</td>
+                        <td className="text-right font-mono">{t.price.toFixed(4)}</td>
+                        <td className={`text-right font-mono ${t.pnl > 0 ? "text-emerald-400" : t.pnl < 0 ? "text-destructive" : ""}`}>
+                          {t.pnl ? fmt(t.pnl) : "—"}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="rounded border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">{result.error}</div>
+        ))}
+
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Close</Button>
+          <Button onClick={() => mut.mutate()} disabled={mut.isPending}>
+            {mut.isPending && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
+            Run backtest
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function Stat({ label, value, tone }: { label: string; value: string; tone?: "up" | "down" }) {
+  return (
+    <div className="rounded border border-border/40 p-2">
+      <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</div>
+      <div className={`mt-0.5 font-mono text-lg ${tone === "up" ? "text-emerald-400" : tone === "down" ? "text-destructive" : ""}`}>{value}</div>
     </div>
   );
 }
