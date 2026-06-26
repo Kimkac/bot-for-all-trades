@@ -1,10 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Check, Sparkles } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { PageHeader } from "@/components/AppShell";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import { getMySubscription } from "@/lib/subscriptions.functions";
+import { PLAN_LIMITS, type PlanTier } from "@/lib/plans";
 
 export const Route = createFileRoute("/_authenticated/billing")({
   head: () => ({ meta: [{ title: "Plans & Billing — Tradedesk" }] }),
@@ -49,7 +53,10 @@ const PLANS: Plan[] = [
 ];
 
 function BillingPage() {
-  const currentPlanId = "starter"; // wired once payments are enabled
+  const fetchSub = useServerFn(getMySubscription);
+  const { data: sub } = useQuery({ queryKey: ["my-subscription"], queryFn: () => fetchSub() });
+  const currentPlanId = (sub?.tier ?? "starter") as PlanTier;
+  const currentName = PLAN_LIMITS[currentPlanId].name;
 
   return (
     <>
@@ -61,8 +68,9 @@ function BillingPage() {
         <Card className="flex items-center gap-3 border-primary/30 bg-primary/5 p-4 text-sm">
           <Sparkles className="h-4 w-4 text-primary" />
           <span>
-            Currently on <span className="font-medium">Starter (Free trial)</span>.
-            Payments go live once Stripe is enabled on this workspace.
+            Currently on <span className="font-medium">{currentName}</span>
+            {sub?.current_period_end ? ` · renews ${new Date(sub.current_period_end).toLocaleDateString()}` : ""}.
+            Tier limits are enforced now; checkout activates once a payment provider is connected.
           </span>
         </Card>
 
