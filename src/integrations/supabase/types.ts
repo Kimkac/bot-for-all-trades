@@ -215,6 +215,42 @@ export type Database = {
           },
         ]
       }
+      subscriptions: {
+        Row: {
+          created_at: string
+          current_period_end: string | null
+          provider: string | null
+          provider_customer_id: string | null
+          provider_subscription_id: string | null
+          status: string
+          tier: Database["public"]["Enums"]["plan_tier"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_period_end?: string | null
+          provider?: string | null
+          provider_customer_id?: string | null
+          provider_subscription_id?: string | null
+          status?: string
+          tier?: Database["public"]["Enums"]["plan_tier"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_period_end?: string | null
+          provider?: string | null
+          provider_customer_id?: string | null
+          provider_subscription_id?: string | null
+          status?: string
+          tier?: Database["public"]["Enums"]["plan_tier"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       trades: {
         Row: {
           bot_id: string
@@ -304,6 +340,7 @@ export type Database = {
       bot_status: "stopped" | "running" | "error"
       exchange_kind: "binance" | "coinbase" | "alpaca"
       exchange_mode: "live" | "demo"
+      plan_tier: "starter" | "trader" | "pro" | "elite"
       signal_kind: "buy" | "sell" | "hold"
       strategy_kind: "sma_crossover" | "rsi_reversion" | "grid" | "dca"
       trade_side: "buy" | "sell"
@@ -439,6 +476,7 @@ export const Constants = {
       bot_status: ["stopped", "running", "error"],
       exchange_kind: ["binance", "coinbase", "alpaca"],
       exchange_mode: ["live", "demo"],
+      plan_tier: ["starter", "trader", "pro", "elite"],
       signal_kind: ["buy", "sell", "hold"],
       strategy_kind: ["sma_crossover", "rsi_reversion", "grid", "dca"],
       trade_side: ["buy", "sell"],

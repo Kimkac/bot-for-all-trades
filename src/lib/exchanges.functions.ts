@@ -2,6 +2,12 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 import type { ExchangeKind, ExchangeMode, Balance } from "./exchanges/types";
+import { PLAN_LIMITS, type PlanTier } from "./plans";
+
+async function getTier(supabase: { from: (t: string) => { select: (c: string) => { eq: (k: string, v: string) => { maybeSingle: () => Promise<{ data: { tier?: string } | null }> } } } }, userId: string): Promise<PlanTier> {
+  const { data } = await supabase.from("subscriptions").select("tier").eq("user_id", userId).maybeSingle();
+  return ((data?.tier as PlanTier) ?? "starter");
+}
 
 const credsSchema = z.object({
   exchange: z.enum(["binance", "coinbase", "alpaca"]),
@@ -48,6 +54,19 @@ export const createExchangeAccount = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => createSchema.parse(d))
   .handler(async ({ data, context }) => {
+    // Plan limits
+    const tier = await getTier(context.supabase as never, context.userId);
+    const limits = PLAN_LIMITS[tier];
+    if (data.mode === "live" && !limits.liveTrading) {
+      throw new Error(`${limits.name} plan supports demo accounts only. Upgrade to enable live trading.`);
+    }
+    const { count } = await context.supabase
+      .from("exchange_accounts")
+      .select("id", { count: "exact", head: true });
+    if ((count ?? 0) >= limits.maxExchanges) {
+      throw new Error(`${limits.name} plan allows ${limits.maxExchanges} exchange account(s). Upgrade to add more.`);
+    }
+
     const { createAdapter } = await import("./exchanges/adapters.server");
     const { encryptSecret } = await import("./crypto.server");
 
