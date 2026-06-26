@@ -1,9 +1,9 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { ArrowLeft, Loader2, Play, RefreshCw, Square, Zap } from "lucide-react";
+import { ArrowLeft, FlaskConical, Loader2, Play, RefreshCw, Square, Zap } from "lucide-react";
 import {
   createChart, CandlestickSeries, LineSeries, type IChartApi,
 } from "lightweight-charts";
@@ -11,7 +11,13 @@ import { PageHeader } from "@/components/AppShell";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
 import { getBot, getBotActivity, getCandles, runBotTickNow, setBotStatus } from "@/lib/bots.functions";
+import { runBacktest } from "@/lib/backtest.functions";
 import { STRATEGIES, type StrategyKind } from "@/lib/strategies/types";
 
 export const Route = createFileRoute("/_authenticated/bots/$botId")({
@@ -28,6 +34,7 @@ function BotDetailPage() {
   const fetchCandles = useServerFn(getCandles);
   const setStatus = useServerFn(setBotStatus);
   const tickNow = useServerFn(runBotTickNow);
+  const [backtestOpen, setBacktestOpen] = useState(false);
 
   const { data: bot, isLoading } = useQuery({
     queryKey: ["bot", botId],
@@ -90,6 +97,9 @@ function BotDetailPage() {
             <Button variant="outline" onClick={() => tick.mutate()} disabled={tick.isPending}>
               {tick.isPending ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Zap className="mr-1.5 h-4 w-4" />}
               Tick now
+            </Button>
+            <Button variant="outline" onClick={() => setBacktestOpen(true)}>
+              <FlaskConical className="mr-1.5 h-4 w-4" /> Backtest
             </Button>
             {running ? (
               <Button variant="outline" onClick={() => startStop.mutate(false)}>
@@ -211,6 +221,7 @@ function BotDetailPage() {
           )}
         </Card>
       </div>
+      <BacktestDialog open={backtestOpen} onOpenChange={setBacktestOpen} botId={botId} />
     </>
   );
 }
