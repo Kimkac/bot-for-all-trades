@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 import { STRATEGIES, validateParams, type StrategyKind } from "./strategies/types";
+import { PLAN_LIMITS, type PlanTier } from "./plans";
 
 const STRATEGY_KEYS = Object.keys(STRATEGIES) as [StrategyKind, ...StrategyKind[]];
 
@@ -52,11 +53,27 @@ export const upsertBot = createServerFn({ method: "POST" })
     // Verify the account belongs to the caller (RLS does this too, but fail fast).
     const { data: acct, error: acctErr } = await context.supabase
       .from("exchange_accounts")
-      .select("id")
+      .select("id, mode")
       .eq("id", data.account_id)
       .maybeSingle();
     if (acctErr) throw new Error(acctErr.message);
     if (!acct) throw new Error("Exchange account not found");
+
+    // Plan limits
+    const { data: sub } = await context.supabase
+      .from("subscriptions").select("tier").eq("user_id", context.userId).maybeSingle();
+    const tier = ((sub?.tier as PlanTier) ?? "starter");
+    const limits = PLAN_LIMITS[tier];
+    if (acct.mode === "live" && !limits.liveTrading) {
+      throw new Error(`${limits.name} plan supports demo bots only. Upgrade to trade live.`);
+    }
+    if (!data.id) {
+      const { count } = await context.supabase
+        .from("bots").select("id", { count: "exact", head: true });
+      if ((count ?? 0) >= limits.maxBots) {
+        throw new Error(`${limits.name} plan allows ${limits.maxBots} bot(s). Upgrade to add more.`);
+      }
+    }
 
     const row = {
       user_id: context.userId,
