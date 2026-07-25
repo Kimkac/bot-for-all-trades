@@ -1,11 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Check, Sparkles } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
+import { Check, Copy, Loader as Loader2, Sparkles, Wallet } from "lucide-react";
 import { PageHeader } from "@/components/AppShell";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { getMySubscription } from "@/lib/subscriptions.functions";
 import { PLAN_LIMITS, type PlanTier } from "@/lib/plans";
@@ -52,11 +56,50 @@ const PLANS: Plan[] = [
   },
 ];
 
+interface ChargeResult {
+  success: boolean;
+  payment_id?: string;
+  pay_address?: string;
+  pay_amount?: number;
+  pay_currency?: string;
+  error?: string;
+}
+
 function BillingPage() {
   const fetchSub = useServerFn(getMySubscription);
+  const qc = useQueryClient();
   const { data: sub } = useQuery({ queryKey: ["my-subscription"], queryFn: () => fetchSub() });
   const currentPlanId = (sub?.tier ?? "starter") as PlanTier;
   const currentName = PLAN_LIMITS[currentPlanId].name;
+
+  const [pending, setPending] = useState<Plan | null>(null);
+  const [charge, setCharge] = useState<ChargeResult | null>(null);
+
+  const chargeMut = useMutation({
+    mutationFn: async (plan: Plan) => {
+      const res = await fetch("/api/crypto-charge", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amount: plan.price, reference: plan.id }),
+      });
+      return (await res.json()) as ChargeResult;
+    },
+    onSuccess: (r, plan) => {
+      if (r.success) {
+        setCharge(r);
+        setPending(plan);
+      } else {
+        toast.error(r.error ?? "Payment failed to start");
+      }
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  function closeDialog() {
+    setCharge(null);
+    setPending(null);
+    qc.invalidateQueries({ queryKey: ["my-subscription"] });
+  }
 
   return (
     <>
@@ -70,7 +113,7 @@ function BillingPage() {
           <span>
             Currently on <span className="font-medium">{currentName}</span>
             {sub?.current_period_end ? ` · renews ${new Date(sub.current_period_end).toLocaleDateString()}` : ""}.
-            Tier limits are enforced now; checkout activates once a payment provider is connected.
+            Pay with crypto via NOWPayments — USDT (TRC20). Your plan activates once payment is confirmed.
           </span>
         </Card>
 
@@ -112,10 +155,13 @@ function BillingPage() {
                 <Button
                   className="mt-5"
                   variant={active ? "outline" : p.recommended ? "default" : "secondary"}
-                  disabled={active}
-                  onClick={() => toast.info("Checkout opens once payments are enabled on this workspace.")}
+                  disabled={active || chargeMut.isPending}
+                  onClick={() => chargeMut.mutate(p)}
                 >
-                  {active ? "Current plan" : `Upgrade — $${p.price}/mo`}
+                  {chargeMut.isPending && chargeMut.variables?.id === p.id ? (
+                    <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                  ) : null}
+                  {active ? "Current plan" : `Upgrade — ${p.price}/mo`}
                 </Button>
               </Card>
             );
@@ -124,9 +170,85 @@ function BillingPage() {
 
         <Card className="p-5 text-sm text-muted-foreground">
           All plans include AES-256 encrypted API key storage, demo & live mode support, and the same strategy engine.
-          Cancel anytime. Prices in USD.
+          Cancel anytime. Prices in USD. Crypto payments via NOWPayments (USDT TRC20).
         </Card>
       </div>
+
+      <PaymentDialog
+        open={!!charge}
+        plan={pending}
+        charge={charge}
+        onOpenChange={(v) => { if (!v) closeDialog(); }}
+      />
     </>
+  );
+}
+
+function PaymentDialog({
+  open, plan, charge, onOpenChange,
+}: {
+  open: boolean;
+  plan: Plan | null;
+  charge: ChargeResult | null;
+  onOpenChange: (v: boolean) => void;
+}) {
+  if (!charge || !charge.success) return null;
+  const amount = charge.pay_amount ?? 0;
+  const address = charge.pay_address ?? "";
+  const currency = (charge.pay_currency ?? "usdttrc20").toUpperCase();
+
+  function copy(v: string) {
+    navigator.clipboard.writeText(v);
+    toast.success("Copied to clipboard");
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <div className="mb-2 grid h-10 w-10 place-items-center rounded-full bg-primary/10 text-primary">
+            <Wallet className="h-5 w-5" />
+          </div>
+          <DialogTitle>Pay with crypto</DialogTitle>
+          <DialogDescription>
+            Send the exact amount below to activate your {plan?.name} plan.
+            Payment ID: <span className="font-mono">{charge.payment_id}</span>
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          <div className="rounded-lg border border-border bg-muted/30 p-4">
+            <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Amount</div>
+            <div className="mt-1 flex items-center justify-between gap-2">
+              <span className="font-mono text-2xl">{amount} {currency}</span>
+              <Button size="sm" variant="ghost" onClick={() => copy(String(amount))}>
+                <Copy className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+            <div className="mt-1 text-xs text-muted-foreground">
+              ≈ ${plan?.price} USD
+            </div>
+          </div>
+
+          <div className="rounded-lg border border-border bg-muted/30 p-4">
+            <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Wallet address</div>
+            <div className="mt-1 flex items-center justify-between gap-2">
+              <span className="break-all font-mono text-sm">{address}</span>
+              <Button size="sm" variant="ghost" onClick={() => copy(address)}>
+                <Copy className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          </div>
+
+          <div className="rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-600 dark:text-amber-400">
+            Send the exact amount in a single transaction. Your plan activates automatically once the payment is confirmed on-chain. Do not close this window until you have sent the payment.
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>I have paid</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
