@@ -125,15 +125,21 @@ function binanceAdapter(creds: ExchangeCredentials, mode: ExchangeMode): Exchang
 }
 
 // ---------- Coinbase Exchange (HMAC) ----------
+const COINBASE_GRANULARITY: Record<string, number> = {
+  "1m": 60, "5m": 300, "15m": 900, "1h": 3600, "4h": 14400, "1d": 86400,
+};
+
 function coinbaseAdapter(creds: ExchangeCredentials, mode: ExchangeMode): ExchangeAdapter {
   if (!creds.passphrase) throw new Error("Coinbase requires a passphrase");
   const base = baseUrl("coinbase", mode);
-  async function signedGet(path: string) {
+
+  async function signedRequest(method: "GET" | "POST", path: string, body?: string) {
     const ts = Math.floor(Date.now() / 1000).toString();
-    const prehash = ts + "GET" + path;
+    const prehash = ts + method + path + (body ?? "");
     const key = Buffer.from(creds.apiSecret, "base64");
     const sig = createHmac("sha256", key).update(prehash).digest("base64");
     const res = await fetch(`${base}${path}`, {
+      method,
       headers: {
         "CB-ACCESS-KEY": creds.apiKey,
         "CB-ACCESS-SIGN": sig,
@@ -142,13 +148,29 @@ function coinbaseAdapter(creds: ExchangeCredentials, mode: ExchangeMode): Exchan
         "Content-Type": "application/json",
         "User-Agent": "tradedesk/1.0",
       },
+      ...(body ? { body } : {}),
     });
     if (!res.ok) {
-      const body = await res.text();
-      throw new Error(`Coinbase ${res.status}: ${body.slice(0, 200)}`);
+      const text = await res.text();
+      throw new Error(`Coinbase ${res.status}: ${text.slice(0, 200)}`);
     }
     return res.json();
   }
+  async function signedGet(path: string) {
+    return signedRequest("GET", path);
+  }
+  async function signedPost(path: string, payload: Record<string, unknown>) {
+    return signedRequest("POST", path, JSON.stringify(payload));
+  }
+  async function publicGet(path: string) {
+    const res = await fetch(`${base}${path}`);
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`Coinbase ${res.status}: ${text.slice(0, 200)}`);
+    }
+    return res.json();
+  }
+
   return {
     async testConnection() {
       const accounts = await signedGet("/accounts");
@@ -164,16 +186,65 @@ function coinbaseAdapter(creds: ExchangeCredentials, mode: ExchangeMode): Exchan
         }))
         .filter((b: Balance) => b.total > 0);
     },
-    async getCandles() { throw new Error("Coinbase tick engine not implemented yet"); },
-    async getPrice() { throw new Error("Coinbase tick engine not implemented yet"); },
-    async placeMarketOrder() { throw new Error("Coinbase tick engine not implemented yet"); },
+    async getCandles(symbol, timeframe, limit) {
+      const granularity = COINBASE_GRANULARITY[timeframe] ?? 60;
+      const end = Math.floor(Date.now() / 1000);
+      const start = end - granularity * limit;
+      const rows = (await publicGet(
+        `/products/${encodeURIComponent(symbol)}/candles?granularity=${granularity}&start=${start}&end=${end}`,
+      )) as Array<[number, number, number, number, number, number]>;
+      // Coinbase returns newest-first; reverse for chronological order.
+      return rows
+        .slice()
+        .reverse()
+        .map((r) => ({
+          time: Math.floor(r[0]),
+          low: r[1],
+          high: r[2],
+          open: r[3],
+          close: r[4],
+          volume: r[5],
+        }));
+    },
+    async getPrice(symbol) {
+      const t = (await publicGet(`/products/${encodeURIComponent(symbol)}/ticker`)) as { price: string };
+      return Number(t.price);
+    },
+    async placeMarketOrder(symbol, side, qty) {
+      const r = await signedPost("/orders", {
+        product_id: symbol,
+        side,
+        type: "market",
+        size: qty.toFixed(8),
+      });
+      const orderId = String(r.id ?? "");
+      let filledQty = 0;
+      let avgPrice = 0;
+      if (orderId) {
+        try {
+          const o = await signedGet(`/orders/${orderId}`);
+          filledQty = Number(o.filled_size ?? 0);
+          avgPrice = Number(o.executed_value ?? 0) / (filledQty || 1);
+        } catch {
+          // best-effort
+        }
+      }
+      return { orderId, filledQty: filledQty || qty, avgPrice: avgPrice || 0, raw: r };
+    },
   };
 }
 
 // ---------- Alpaca ----------
+const ALPACA_TIMEFRAME: Record<string, string> = {
+  "1m": "1Min", "5m": "5Min", "15m": "15Min", "1h": "1Hour", "4h": "4Hour", "1d": "1Day",
+};
+
 function alpacaAdapter(creds: ExchangeCredentials, mode: ExchangeMode): ExchangeAdapter {
   const base = baseUrl("alpaca", mode);
-  async function get(path: string) {
+  // Market data lives on a separate host; paper/live share the same data API.
+  const dataBase = "https://data.alpaca.markets";
+
+  async function tradingGet(path: string) {
     const res = await fetch(`${base}${path}`, {
       headers: {
         "APCA-API-KEY-ID": creds.apiKey,
@@ -186,18 +257,48 @@ function alpacaAdapter(creds: ExchangeCredentials, mode: ExchangeMode): Exchange
     }
     return res.json();
   }
+  async function tradingPost(path: string, payload: Record<string, unknown>) {
+    const res = await fetch(`${base}${path}`, {
+      method: "POST",
+      headers: {
+        "APCA-API-KEY-ID": creds.apiKey,
+        "APCA-API-SECRET-KEY": creds.apiSecret,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      const body = await res.text();
+      throw new Error(`Alpaca ${res.status}: ${body.slice(0, 200)}`);
+    }
+    return res.json();
+  }
+  async function dataGet(path: string) {
+    const res = await fetch(`${dataBase}${path}`, {
+      headers: {
+        "APCA-API-KEY-ID": creds.apiKey,
+        "APCA-API-SECRET-KEY": creds.apiSecret,
+      },
+    });
+    if (!res.ok) {
+      const body = await res.text();
+      throw new Error(`Alpaca data ${res.status}: ${body.slice(0, 200)}`);
+    }
+    return res.json();
+  }
+
   return {
     async testConnection() {
-      const acc = await get("/v2/account");
+      const acc = await tradingGet("/v2/account");
       return { ok: true as const, info: `status=${acc.status}` };
     },
     async getBalances() {
-      const acc = await get("/v2/account");
+      const acc = await tradingGet("/v2/account");
       const balances: Balance[] = [
         { asset: acc.currency ?? "USD", free: Number(acc.cash), total: Number(acc.equity) },
       ];
       try {
-        const positions = await get("/v2/positions");
+        const positions = await tradingGet("/v2/positions");
         for (const p of positions ?? []) {
           balances.push({ asset: p.symbol, free: Number(p.qty), total: Number(p.qty) });
         }
@@ -206,9 +307,48 @@ function alpacaAdapter(creds: ExchangeCredentials, mode: ExchangeMode): Exchange
       }
       return balances;
     },
-    async getCandles() { throw new Error("Alpaca tick engine not implemented yet"); },
-    async getPrice() { throw new Error("Alpaca tick engine not implemented yet"); },
-    async placeMarketOrder() { throw new Error("Alpaca tick engine not implemented yet"); },
+    async getCandles(symbol, timeframe, limit) {
+      const tf = ALPACA_TIMEFRAME[timeframe] ?? "1Min";
+      const end = new Date().toISOString();
+      const start = new Date(Date.now() - limit * 60 * 1000).toISOString();
+      const r = (await dataGet(
+        `/v2/stocks/${encodeURIComponent(symbol)}/bars?timeframe=${tf}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&limit=${Math.min(limit, 1000)}`,
+      )) as { bars: Array<{ t: string; o: number; h: number; l: number; c: number; v: number }> };
+      return (r.bars ?? []).map((b) => ({
+        time: Math.floor(new Date(b.t).getTime() / 1000),
+        open: b.o,
+        high: b.h,
+        low: b.l,
+        close: b.c,
+        volume: b.v,
+      }));
+    },
+    async getPrice(symbol) {
+      const r = (await dataGet(`/v2/stocks/${encodeURIComponent(symbol)}/quotes/latest`)) as {
+        quote: { ap: number; bp: number };
+      };
+      // Use bid for sells, ask for buys; mid is a reasonable reference.
+      const ask = r.quote?.ap;
+      const bid = r.quote?.bp;
+      if (ask && bid) return (ask + bid) / 2;
+      return ask || bid || 0;
+    },
+    async placeMarketOrder(symbol, side, qty) {
+      const r = await tradingPost("/v2/orders", {
+        symbol,
+        side,
+        type: "market",
+        qty: qty.toFixed(6),
+        time_in_force: "day",
+      });
+      const orderId = String(r.id ?? "");
+      return {
+        orderId,
+        filledQty: Number(r.filled_qty ?? qty),
+        avgPrice: Number(r.filled_avg_price ?? 0),
+        raw: r,
+      };
+    },
   };
 }
 
