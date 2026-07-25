@@ -13,6 +13,7 @@ import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ApiCryptoChargeRouteImport } from './routes/api/crypto-charge'
 import { Route as AuthenticatedExchangesRouteImport } from './routes/_authenticated/exchanges'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedBotsRouteImport } from './routes/_authenticated/bots'
@@ -37,6 +38,11 @@ const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiCryptoChargeRoute = ApiCryptoChargeRouteImport.update({
+  id: '/api/crypto-charge',
+  path: '/api/crypto-charge',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedExchangesRoute = AuthenticatedExchangesRouteImport.update({
@@ -78,6 +84,7 @@ export interface FileRoutesByFullPath {
   '/bots': typeof AuthenticatedBotsRouteWithChildren
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/exchanges': typeof AuthenticatedExchangesRoute
+  '/api/crypto-charge': typeof ApiCryptoChargeRoute
   '/bots/$botId': typeof AuthenticatedBotsBotIdRoute
   '/api/public/bot-tick': typeof ApiPublicBotTickRoute
 }
@@ -89,6 +96,7 @@ export interface FileRoutesByTo {
   '/bots': typeof AuthenticatedBotsRouteWithChildren
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/exchanges': typeof AuthenticatedExchangesRoute
+  '/api/crypto-charge': typeof ApiCryptoChargeRoute
   '/bots/$botId': typeof AuthenticatedBotsBotIdRoute
   '/api/public/bot-tick': typeof ApiPublicBotTickRoute
 }
@@ -102,6 +110,7 @@ export interface FileRoutesById {
   '/_authenticated/bots': typeof AuthenticatedBotsRouteWithChildren
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/exchanges': typeof AuthenticatedExchangesRoute
+  '/api/crypto-charge': typeof ApiCryptoChargeRoute
   '/_authenticated/bots/$botId': typeof AuthenticatedBotsBotIdRoute
   '/api/public/bot-tick': typeof ApiPublicBotTickRoute
 }
@@ -115,6 +124,7 @@ export interface FileRouteTypes {
     | '/bots'
     | '/dashboard'
     | '/exchanges'
+    | '/api/crypto-charge'
     | '/bots/$botId'
     | '/api/public/bot-tick'
   fileRoutesByTo: FileRoutesByTo
@@ -126,6 +136,7 @@ export interface FileRouteTypes {
     | '/bots'
     | '/dashboard'
     | '/exchanges'
+    | '/api/crypto-charge'
     | '/bots/$botId'
     | '/api/public/bot-tick'
   id:
@@ -138,6 +149,7 @@ export interface FileRouteTypes {
     | '/_authenticated/bots'
     | '/_authenticated/dashboard'
     | '/_authenticated/exchanges'
+    | '/api/crypto-charge'
     | '/_authenticated/bots/$botId'
     | '/api/public/bot-tick'
   fileRoutesById: FileRoutesById
@@ -147,6 +159,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  ApiCryptoChargeRoute: typeof ApiCryptoChargeRoute
   ApiPublicBotTickRoute: typeof ApiPublicBotTickRoute
 }
 
@@ -178,6 +191,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/crypto-charge': {
+      id: '/api/crypto-charge'
+      path: '/api/crypto-charge'
+      fullPath: '/api/crypto-charge'
+      preLoaderRoute: typeof ApiCryptoChargeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/exchanges': {
@@ -258,18 +278,9 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  ApiCryptoChargeRoute: ApiCryptoChargeRoute,
   ApiPublicBotTickRoute: ApiPublicBotTickRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
