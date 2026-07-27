@@ -85,7 +85,7 @@ function AuthPage() {
             >
               <Activity className="h-6 w-6 text-primary" />
             </Link>
-            <h1 className="font-sans text-xl font-semibold tracking-tight text-foreground">TRADESK</h1>
+            <h1 className="font-sans text-xl font-semibold tracking-tight text-foreground">TRADEDESK</h1>
             <p className="mt-1 font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">Secure Terminal v4.2</p>
           </div>
 
