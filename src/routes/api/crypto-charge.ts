@@ -28,7 +28,7 @@ export const Route = createFileRoute("/api/crypto-charge")({
         }
 
         try {
-          const res = await fetch("https://api.nowpayments.io/v1/payment", {
+          const res = await fetch("https://api.sandbox.nowpayments.io/v1/payment", {
             method: "POST",
             headers: {
               "x-api-key": apiKey,
