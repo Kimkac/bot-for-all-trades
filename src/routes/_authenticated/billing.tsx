@@ -209,46 +209,109 @@ function PaymentDialog({
           <div className="mb-2 grid h-10 w-10 place-items-center rounded-full bg-primary/10 text-primary">
             <Wallet className="h-5 w-5" />
           </div>
-          <DialogTitle>Pay with crypto</DialogTitle>
+          <DialogTitle>Complete your payment</DialogTitle>
           <DialogDescription>
-            Send the exact amount below to activate your {plan?.name} plan.
-            Payment ID: <span className="font-mono">{charge.payment_id}</span>
+            Send exactly <span className="font-mono font-semibold text-foreground">{amount} {currency}</span> to this address to activate your {plan?.name} plan.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
-          <div className="rounded-lg border border-border bg-muted/30 p-4">
-            <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Amount</div>
-            <div className="mt-1 flex items-center justify-between gap-2">
-              <span className="font-mono text-2xl">{amount} {currency}</span>
-              <Button size="sm" variant="ghost" onClick={() => copy(String(amount))}>
-                <Copy className="h-3.5 w-3.5" />
-              </Button>
-            </div>
-            <div className="mt-1 text-xs text-muted-foreground">
-              ≈ ${plan?.price} USD
-            </div>
-          </div>
-
-          <div className="rounded-lg border border-border bg-muted/30 p-4">
-            <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Wallet address</div>
-            <div className="mt-1 flex items-center justify-between gap-2">
-              <span className="break-all font-mono text-sm">{address}</span>
-              <Button size="sm" variant="ghost" onClick={() => copy(address)}>
-                <Copy className="h-3.5 w-3.5" />
-              </Button>
-            </div>
-          </div>
-
-          <div className="rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-600 dark:text-amber-400">
-            Send the exact amount in a single transaction. Your plan activates automatically once the payment is confirmed on-chain. Do not close this window until you have sent the payment.
-          </div>
-        </div>
-
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>I have paid</Button>
-        </DialogFooter>
+        <PaymentBody
+          amount={amount}
+          address={address}
+          currency={currency}
+          paymentId={charge.payment_id ?? ""}
+          onCopy={copy}
+        />
       </DialogContent>
     </Dialog>
+  );
+}
+
+function PaymentBody({
+  amount, address, currency, paymentId, onCopy,
+}: {
+  amount: number;
+  address: string;
+  currency: string;
+  paymentId: string;
+  onCopy: (v: string) => void;
+}) {
+  const [checking, setChecking] = useState(false);
+  const [status, setStatus] = useState<string | null>(null);
+
+  async function checkStatus() {
+    setChecking(true);
+    try {
+      const res = await fetch(`/api/crypto-status?payment_id=${encodeURIComponent(paymentId)}`);
+      const data = (await res.json()) as { success: boolean; payment_status?: string; error?: string };
+      if (!data.success) {
+        toast.error(data.error ?? "Failed to check status");
+        return;
+      }
+      setStatus(data.payment_status ?? "waiting");
+      if (data.payment_status === "finished" || data.payment_status === "confirmed") {
+        toast.success("Payment confirmed — your plan is active");
+      } else if (data.payment_status === "waiting") {
+        toast.info("Waiting for payment to arrive on-chain");
+      } else {
+        toast.info(`Payment status: ${data.payment_status}`);
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to check status");
+    } finally {
+      setChecking(false);
+    }
+  }
+
+  const confirmed = status === "finished" || status === "confirmed";
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-lg border border-border bg-muted/30 p-4">
+        <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Amount</div>
+        <div className="mt-1 flex items-center justify-between gap-2">
+          <span className="font-mono text-2xl">{amount} {currency}</span>
+          <Button size="sm" variant="ghost" onClick={() => onCopy(String(amount))} aria-label="Copy amount">
+            <Copy className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+      </div>
+
+      <div>
+        <div className="mb-1.5 text-xs text-muted-foreground">
+          Send exactly <span className="font-mono text-foreground">{amount} USDT TRC20</span> to this address:
+        </div>
+        <div className="flex items-center justify-between gap-2 rounded-lg border border-border bg-zinc-950 p-3 text-emerald-300">
+          <span className="break-all font-mono text-sm">{address}</span>
+          <Button size="sm" variant="ghost" className="text-emerald-300 hover:text-emerald-200" onClick={() => onCopy(address)} aria-label="Copy wallet address">
+            <Copy className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+        <div className="mt-2 font-mono text-[11px] text-muted-foreground">
+          Payment ID: <span className="text-foreground">{paymentId}</span>
+        </div>
+      </div>
+
+      <div className="flex gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-xs text-amber-700 dark:text-amber-300">
+        <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+        <span><strong>Only send USDT TRC20.</strong> Wrong network = lost funds.</span>
+      </div>
+
+      {status && (
+        <div className={`flex items-center gap-2 rounded-md border p-3 text-xs ${
+          confirmed
+            ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+            : "border-border bg-muted/30 text-muted-foreground"
+        }`}>
+          {confirmed ? <CheckCircle2 className="h-4 w-4" /> : <Loader2 className="h-4 w-4" />}
+          <span>Status: <span className="font-mono">{status}</span></span>
+        </div>
+      )}
+
+      <Button className="w-full" onClick={checkStatus} disabled={checking || !paymentId}>
+        {checking ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Check className="mr-2 h-4 w-4" />}
+        I've sent the payment
+      </Button>
+    </div>
   );
 }
