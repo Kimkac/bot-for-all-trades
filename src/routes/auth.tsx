@@ -63,75 +63,159 @@ function AuthPage() {
   }
 
   return (
-    <div className="grid min-h-screen place-items-center bg-background px-4">
-      <div className="w-full max-w-sm">
-        <Link to="/" className="mb-8 flex items-center justify-center gap-2 font-semibold tracking-tight">
-          <span className="grid h-7 w-7 place-items-center rounded-md bg-primary text-primary-foreground">
-            <Activity className="h-4 w-4" />
-          </span>
-          Tradedesk
-        </Link>
+    <div className="relative grid min-h-screen w-full place-items-center overflow-hidden bg-background p-4">
+      {/* Ambient glows */}
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute -top-[15%] -left-[15%] h-[45%] w-[45%] rounded-full bg-primary/10 blur-[120px]" />
+        <div className="absolute -bottom-[15%] -right-[15%] h-[45%] w-[45%] rounded-full bg-success/10 blur-[120px]" />
+      </div>
 
-        <div className="rounded-xl border border-border bg-card p-6 shadow-2xl">
-          <h1 className="mb-4 text-center text-lg font-semibold tracking-tight">Sign in to Tradedesk</h1>
-          <Tabs defaultValue="signin">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="signin">Sign in</TabsTrigger>
-              <TabsTrigger value="signup">Create account</TabsTrigger>
+      <div className="relative w-full max-w-[350px]">
+        {/* Decorative accents */}
+        <div className="absolute -right-1 top-1/2 h-12 w-[2px] -translate-y-1/2 rounded-full bg-primary/40 blur-[1px]" />
+        <div className="absolute -left-1 top-1/3 h-8 w-[2px] -translate-y-1/2 rounded-full bg-success/40 blur-[1px]" />
+
+        {/* Main card */}
+        <div className="relative rounded-2xl border border-white/10 bg-card/80 p-6 shadow-2xl backdrop-blur-xl">
+          {/* Header */}
+          <div className="mb-8 flex flex-col items-center">
+            <Link
+              to="/"
+              className="mb-4 grid h-12 w-12 place-items-center rounded-xl border border-white/10 bg-white/5"
+            >
+              <Activity className="h-6 w-6 text-primary" />
+            </Link>
+            <h1 className="font-sans text-xl font-semibold tracking-tight text-foreground">TRADESK</h1>
+            <p className="mt-1 font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">Secure Terminal v4.2</p>
+          </div>
+
+          <Tabs defaultValue="signin" className="w-full">
+            <TabsList className="mb-8 flex w-full gap-1 rounded-lg border border-white/5 bg-black/40 p-1">
+              <TabsTrigger
+                value="signin"
+                className="flex-1 rounded-md py-2 text-sm font-medium transition-all data-[state=active]:bg-white/5 data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground"
+              >
+                Sign In
+              </TabsTrigger>
+              <TabsTrigger
+                value="signup"
+                className="flex-1 rounded-md py-2 text-sm font-medium transition-all data-[state=active]:bg-white/5 data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground"
+              >
+                Sign Up
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="signin">
-              <form onSubmit={handleSignIn} className="mt-4 space-y-3">
-                <Field label="Email" type="email" value={email} onChange={setEmail} />
-                <PasswordField
-                  value={password}
-                  onChange={setPassword}
-                  show={showPassword}
-                  onToggle={() => setShowPassword((s) => !s)}
-                  autoComplete="current-password"
-                />
-                <Button type="submit" className="w-full" disabled={loading}>
-                  {loading ? "Signing in…" : "Sign in"}
+              <form onSubmit={handleSignIn} className="space-y-5">
+                <div className="space-y-1.5">
+                  <Label className="ml-1 font-mono text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
+                    Terminal ID
+                  </Label>
+                  <div className="relative group">
+                    <Input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="operator@tradedesk.io"
+                      required
+                      autoComplete="email"
+                      className="h-11 w-full rounded-lg border border-white/10 bg-black/40 px-4 text-sm text-foreground placeholder:text-muted-foreground/60 focus:border-primary/50 focus:ring-1 focus:ring-primary/50"
+                    />
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                      <div className="h-1.5 w-1.5 rounded-full bg-success/50" />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <Label className="ml-1 font-mono text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
+                      Passcode
+                    </Label>
+                    <button
+                      type="button"
+                      onClick={() => toast.info("Password reset will be available soon.")}
+                      className="font-mono text-[10px] text-primary/80 transition-colors hover:text-primary"
+                    >
+                      RECOVER
+                    </button>
+                  </div>
+                  <PasswordField
+                    value={password}
+                    onChange={setPassword}
+                    show={showPassword}
+                    onToggle={() => setShowPassword((s) => !s)}
+                    autoComplete="current-password"
+                  />
+                </div>
+
+                <Button
+                  type="submit"
+                  disabled={loading}
+                  className="h-11 w-full rounded-lg bg-white text-sm font-semibold text-black shadow-[0_0_20px_rgba(255,255,255,0.1)] transition-all hover:bg-gray-200 active:scale-[0.98] disabled:opacity-60"
+                >
+                  {loading ? "Initializing…" : "Initialize Session"}
                 </Button>
               </form>
             </TabsContent>
 
             <TabsContent value="signup">
-              <form onSubmit={handleSignUp} className="mt-4 space-y-3">
-                <Field label="Email" type="email" value={email} onChange={setEmail} />
-                <PasswordField
-                  value={password}
-                  onChange={setPassword}
-                  show={showPassword}
-                  onToggle={() => setShowPassword((s) => !s)}
-                  autoComplete="new-password"
-                  hint="At least 6 characters, mixing letters and numbers."
-                />
+              <form onSubmit={handleSignUp} className="space-y-5">
+                <div className="space-y-1.5">
+                  <Label className="ml-1 font-mono text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
+                    Terminal ID
+                  </Label>
+                  <div className="relative group">
+                    <Input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="operator@tradedesk.io"
+                      required
+                      autoComplete="email"
+                      className="h-11 w-full rounded-lg border border-white/10 bg-black/40 px-4 text-sm text-foreground placeholder:text-muted-foreground/60 focus:border-primary/50 focus:ring-1 focus:ring-primary/50"
+                    />
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                      <div className="h-1.5 w-1.5 rounded-full bg-success/50" />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="ml-1 font-mono text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
+                    Passcode
+                  </Label>
+                  <PasswordField
+                    value={password}
+                    onChange={setPassword}
+                    show={showPassword}
+                    onToggle={() => setShowPassword((s) => !s)}
+                    autoComplete="new-password"
+                    hint="At least 6 characters, mixing letters and numbers."
+                  />
+                </div>
+
                 <Button
                   type="submit"
-                  className="w-full"
                   disabled={loading || !PASSWORD_RULE.test(password)}
+                  className="h-11 w-full rounded-lg bg-white text-sm font-semibold text-black shadow-[0_0_20px_rgba(255,255,255,0.1)] transition-all hover:bg-gray-200 active:scale-[0.98] disabled:opacity-60"
                 >
-                  {loading ? "Creating…" : "Create account"}
+                  {loading ? "Creating…" : "Initialize Session"}
                 </Button>
               </form>
             </TabsContent>
           </Tabs>
+
+          {/* Footer metadata */}
+          <div className="mt-8 flex items-center justify-between font-mono text-[9px] font-medium uppercase tracking-widest text-muted-foreground/70">
+            <span className="flex items-center gap-2">
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-success" />
+              System: Online
+            </span>
+            <span>Encrypted 256-AES</span>
+          </div>
         </div>
-
-        <p className="mt-6 text-center text-xs text-muted-foreground">
-          By continuing you accept that trading involves risk.
-        </p>
       </div>
-    </div>
-  );
-}
-
-function Field({ label, type, value, onChange }: { label: string; type: string; value: string; onChange: (v: string) => void }) {
-  return (
-    <div className="space-y-1.5">
-      <Label className="text-xs uppercase tracking-wider text-muted-foreground">{label}</Label>
-      <Input type={type} value={value} onChange={(e) => onChange(e.target.value)} required autoComplete={type === "password" ? "current-password" : "email"} />
     </div>
   );
 }
@@ -153,7 +237,6 @@ function PasswordField({
 }) {
   return (
     <div className="space-y-1.5">
-      <Label className="text-xs uppercase tracking-wider text-muted-foreground">Password</Label>
       <div className="relative">
         <Input
           type={show ? "text" : "password"}
@@ -161,18 +244,19 @@ function PasswordField({
           onChange={(e) => onChange(e.target.value)}
           required
           autoComplete={autoComplete}
-          className="pr-10"
+          placeholder="••••••••"
+          className="h-11 w-full rounded-lg border border-white/10 bg-black/40 px-4 pr-10 text-sm text-foreground placeholder:text-muted-foreground/60 focus:border-primary/50 focus:ring-1 focus:ring-primary/50"
         />
         <button
           type="button"
           onClick={onToggle}
           aria-label={show ? "Hide password" : "Show password"}
-          className="absolute inset-y-0 right-0 grid w-10 place-items-center text-muted-foreground hover:text-foreground"
+          className="absolute inset-y-0 right-0 grid w-10 place-items-center text-muted-foreground transition-colors hover:text-foreground"
         >
           {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
         </button>
       </div>
-      {hint ? <p className="text-[11px] text-muted-foreground">{hint}</p> : null}
+      {hint ? <p className="font-mono text-[10px] text-muted-foreground/70">{hint}</p> : null}
     </div>
   );
 }
