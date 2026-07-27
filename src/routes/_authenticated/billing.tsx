@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Check, Copy, Loader as Loader2, Sparkles, Wallet } from "lucide-react";
+import { AlertTriangle, Check, CheckCircle2, Copy, Loader as Loader2, Sparkles, Wallet } from "lucide-react";
 import { PageHeader } from "@/components/AppShell";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";

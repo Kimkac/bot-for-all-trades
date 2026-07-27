@@ -18,6 +18,7 @@ import { Route as AuthenticatedBotsRouteImport } from './routes/_authenticated/b
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedExchangesRouteImport } from './routes/_authenticated/exchanges'
 import { Route as ApiCryptoChargeRouteImport } from './routes/api/crypto-charge'
+import { Route as ApiCryptoStatusRouteImport } from './routes/api/crypto-status'
 import { Route as AuthenticatedBotsBotIdRouteImport } from './routes/_authenticated/bots.$botId'
 import { Route as ApiPublicBotTickRouteImport } from './routes/api/public/bot-tick'
 
@@ -65,6 +66,11 @@ const ApiCryptoChargeRoute = ApiCryptoChargeRouteImport.update({
   path: '/api/crypto-charge',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiCryptoStatusRoute = ApiCryptoStatusRouteImport.update({
+  id: '/api/crypto-status',
+  path: '/api/crypto-status',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedBotsBotIdRoute = AuthenticatedBotsBotIdRouteImport.update({
   id: '/$botId',
   path: '/$botId',
@@ -85,6 +91,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/exchanges': typeof AuthenticatedExchangesRoute
   '/api/crypto-charge': typeof ApiCryptoChargeRoute
+  '/api/crypto-status': typeof ApiCryptoStatusRoute
   '/bots/$botId': typeof AuthenticatedBotsBotIdRoute
   '/api/public/bot-tick': typeof ApiPublicBotTickRoute
 }
@@ -97,6 +104,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/exchanges': typeof AuthenticatedExchangesRoute
   '/api/crypto-charge': typeof ApiCryptoChargeRoute
+  '/api/crypto-status': typeof ApiCryptoStatusRoute
   '/bots/$botId': typeof AuthenticatedBotsBotIdRoute
   '/api/public/bot-tick': typeof ApiPublicBotTickRoute
 }
@@ -111,6 +119,7 @@ export interface FileRoutesById {
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/exchanges': typeof AuthenticatedExchangesRoute
   '/api/crypto-charge': typeof ApiCryptoChargeRoute
+  '/api/crypto-status': typeof ApiCryptoStatusRoute
   '/_authenticated/bots/$botId': typeof AuthenticatedBotsBotIdRoute
   '/api/public/bot-tick': typeof ApiPublicBotTickRoute
 }
@@ -125,6 +134,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/exchanges'
     | '/api/crypto-charge'
+    | '/api/crypto-status'
     | '/bots/$botId'
     | '/api/public/bot-tick'
   fileRoutesByTo: FileRoutesByTo
@@ -137,6 +147,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/exchanges'
     | '/api/crypto-charge'
+    | '/api/crypto-status'
     | '/bots/$botId'
     | '/api/public/bot-tick'
   id:
@@ -150,6 +161,7 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard'
     | '/_authenticated/exchanges'
     | '/api/crypto-charge'
+    | '/api/crypto-status'
     | '/_authenticated/bots/$botId'
     | '/api/public/bot-tick'
   fileRoutesById: FileRoutesById
@@ -160,6 +172,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   ApiCryptoChargeRoute: typeof ApiCryptoChargeRoute
+  ApiCryptoStatusRoute: typeof ApiCryptoStatusRoute
   ApiPublicBotTickRoute: typeof ApiPublicBotTickRoute
 }
 
@@ -228,6 +241,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiCryptoChargeRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/crypto-status': {
+      id: '/api/crypto-status'
+      path: '/api/crypto-status'
+      fullPath: '/api/crypto-status'
+      preLoaderRoute: typeof ApiCryptoStatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/bots/$botId': {
       id: '/_authenticated/bots/$botId'
       path: '/$botId'
@@ -279,6 +299,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   ApiCryptoChargeRoute: ApiCryptoChargeRoute,
+  ApiCryptoStatusRoute: ApiCryptoStatusRoute,
   ApiPublicBotTickRoute: ApiPublicBotTickRoute,
 }
 export const routeTree = rootRouteImport
