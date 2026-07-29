@@ -77,6 +77,7 @@ function BillingPage() {
 
   const [pending, setPending] = useState<Plan | null>(null);
   const [charge, setCharge] = useState<ChargeResult | null>(null);
+  const [testResponse, setTestResponse] = useState<ChargeResult | null>(null);
 
   const chargeMut = useMutation({
     mutationFn: async (plan: Plan) => {
@@ -93,6 +94,26 @@ function BillingPage() {
         setPending(plan);
       } else {
         toast.error(r.error ?? "Payment failed to start");
+      }
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const testChargeMut = useMutation({
+    mutationFn: async () => {
+      const res = await fetch("/api/crypto-charge", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amount: 1, reference: "test-001" }),
+      });
+      return (await res.json()) as ChargeResult;
+    },
+    onSuccess: (r) => {
+      setTestResponse(r);
+      if (r.success) {
+        toast.success("Test charge created — response shown below");
+      } else {
+        toast.error(r.error ?? "Test charge failed");
       }
     },
     onError: (e: Error) => toast.error(e.message),
