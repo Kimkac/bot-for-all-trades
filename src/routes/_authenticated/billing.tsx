@@ -2,7 +2,10 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { AlertTriangle, Check, CheckCircle2, Copy, Loader as Loader2, Sparkles, Wallet } from "lucide-react";
+import {
+  AlertTriangle, Check, CheckCircle2, Copy, FlaskConical, Loader as Loader2,
+  Sparkles, Wallet,
+} from "lucide-react";
 import { PageHeader } from "@/components/AppShell";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -74,6 +77,7 @@ function BillingPage() {
 
   const [pending, setPending] = useState<Plan | null>(null);
   const [charge, setCharge] = useState<ChargeResult | null>(null);
+  const [testResponse, setTestResponse] = useState<ChargeResult | null>(null);
 
   const chargeMut = useMutation({
     mutationFn: async (plan: Plan) => {
@@ -90,6 +94,26 @@ function BillingPage() {
         setPending(plan);
       } else {
         toast.error(r.error ?? "Payment failed to start");
+      }
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const testChargeMut = useMutation({
+    mutationFn: async () => {
+      const res = await fetch("/api/crypto-charge", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amount: 1, reference: "test-001" }),
+      });
+      return (await res.json()) as ChargeResult;
+    },
+    onSuccess: (r) => {
+      setTestResponse(r);
+      if (r.success) {
+        toast.success("Test charge created — response shown below");
+      } else {
+        toast.error(r.error ?? "Test charge failed");
       }
     },
     onError: (e: Error) => toast.error(e.message),
@@ -115,6 +139,45 @@ function BillingPage() {
             {sub?.current_period_end ? ` · renews ${new Date(sub.current_period_end).toLocaleDateString()}` : ""}.
             Pay with crypto via NOWPayments — USDT (TRC20). Your plan activates once payment is confirmed.
           </span>
+        </Card>
+
+        <Card className="p-5">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <h3 className="text-sm font-medium">Integration test</h3>
+              <p className="text-xs text-muted-foreground">
+                Send a $1 test charge to NOWPayments and inspect the full response.
+              </p>
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => testChargeMut.mutate()}
+              disabled={testChargeMut.isPending}
+              aria-label="Run NOWPayments test charge"
+            >
+              {testChargeMut.isPending ? (
+                <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+              ) : (
+                <FlaskConical className="mr-1.5 h-4 w-4" />
+              )}
+              Test NOWPayments
+            </Button>
+          </div>
+
+          {testResponse && (
+            <div className="mt-4 space-y-2">
+              <div className="flex items-center gap-2 text-xs">
+                <span className="text-muted-foreground">Success:</span>
+                <Badge variant={testResponse.success ? "default" : "destructive"} className="text-[10px]">
+                  {testResponse.success ? "true" : "false"}
+                </Badge>
+              </div>
+              <pre className="max-h-64 overflow-auto rounded-lg border border-border bg-zinc-950 p-3 font-mono text-xs text-emerald-300">
+                {JSON.stringify(testResponse, null, 2)}
+              </pre>
+            </div>
+          )}
         </Card>
 
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
