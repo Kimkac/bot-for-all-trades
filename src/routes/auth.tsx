@@ -33,6 +33,7 @@ function AuthPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [recovering, setRecovering] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -55,11 +56,34 @@ function AuthPage() {
     if (err) return toast.error(err);
     setLoading(true);
     const redirectTo = typeof window !== "undefined" ? `${window.location.origin}/dashboard` : undefined;
-    const { error } = await supabase.auth.signUp({ email, password, options: { emailRedirectTo: redirectTo } });
+    const { data, error } = await supabase.auth.signUp({ email, password, options: { emailRedirectTo: redirectTo } });
+    if (error) {
+      setLoading(false);
+      return toast.error(error.message);
+    }
+    if (!data.session) {
+      // Auto-confirm is on: sign in immediately so the user lands authenticated.
+      const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+      if (signInError) {
+        setLoading(false);
+        toast.success("Account created. Please sign in.");
+        return;
+      }
+    }
     setLoading(false);
-    if (error) return toast.error(error.message);
-    toast.success("Account created. Check your email if confirmation is required.");
+    toast.success("Account created.");
     navigate({ to: "/dashboard", replace: true });
+  }
+
+  async function handleRecover() {
+    if (!email) return toast.error("Enter your email above, then tap Recover.");
+    setRecovering(true);
+    const redirectTo =
+      typeof window !== "undefined" ? `${window.location.origin}/reset-password` : undefined;
+    const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
+    setRecovering(false);
+    if (error) return toast.error(error.message);
+    toast.success("Password reset link sent. Check your inbox.");
   }
 
   return (
@@ -134,10 +158,11 @@ function AuthPage() {
                     </Label>
                     <button
                       type="button"
-                      onClick={() => toast.info("Password reset will be available soon.")}
+                      onClick={handleRecover}
+                      disabled={recovering}
                       className="font-mono text-[10px] text-primary/80 transition-colors hover:text-primary"
                     >
-                      RECOVER
+                      {recovering ? "SENDING…" : "RECOVER"}
                     </button>
                   </div>
                   <PasswordField
