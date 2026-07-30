@@ -107,7 +107,7 @@ function AuthPage() {
               to="/"
               className="mb-4 grid h-12 w-12 place-items-center rounded-xl border border-white/10 bg-white/5"
             >
-              <Activity className="h-6 w-6 text-primary" />
+              <img src="/favicon.png" alt="Tradedesk" width={40} height={40} className="h-8 w-8 rounded-lg object-cover" />
             </Link>
             <h1 className="font-sans text-xl font-semibold tracking-tight text-foreground">TRADEDESK</h1>
             <p className="mt-1 font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">Secure Terminal v4.2</p>
