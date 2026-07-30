@@ -1,5 +1,5 @@
 import { Link, Outlet, useLocation, useNavigate } from "@tanstack/react-router";
-import { Activity, LayoutDashboard, Plug, Bot, LogOut, CreditCard } from "lucide-react";
+import { LayoutDashboard, Plug, Bot, LogOut, CreditCard } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
@@ -27,9 +27,13 @@ export function AppShell() {
     <div className="flex min-h-screen bg-background text-foreground">
       <aside className="hidden w-56 shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground md:flex">
         <div className="flex h-14 items-center gap-2 border-b border-sidebar-border px-4 font-semibold tracking-tight">
-          <span className="grid h-7 w-7 place-items-center rounded-md bg-primary text-primary-foreground">
-            <Activity className="h-4 w-4" />
-          </span>
+          <img
+            src="/favicon.png"
+            alt="Tradedesk"
+            width={28}
+            height={28}
+            className="h-7 w-7 rounded-md object-cover"
+          />
           Tradedesk
         </div>
         <nav className="flex-1 space-y-0.5 p-3">
