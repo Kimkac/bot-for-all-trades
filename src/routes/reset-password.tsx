@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Activity, Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -62,7 +62,7 @@ function ResetPasswordPage() {
         <div className="relative rounded-2xl border border-white/10 bg-card/80 p-6 shadow-2xl backdrop-blur-xl">
           <div className="mb-8 flex flex-col items-center">
             <Link to="/" className="mb-4 grid h-12 w-12 place-items-center rounded-xl border border-white/10 bg-white/5">
-              <Activity className="h-6 w-6 text-primary" />
+              <img src="/favicon.png" alt="Tradedesk" width={40} height={40} className="h-8 w-8 rounded-lg object-cover" />
             </Link>
             <h1 className="font-sans text-xl font-semibold tracking-tight text-foreground">RESET PASSCODE</h1>
             <p className="mt-1 font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">
