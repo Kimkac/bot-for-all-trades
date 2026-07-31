@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { getNowPaymentsBase, maskKey } from "@/lib/nowpayments.server";
 
 export const Route = createFileRoute("/api/crypto-status")({
   server: {
@@ -6,11 +7,13 @@ export const Route = createFileRoute("/api/crypto-status")({
       GET: async ({ request }) => {
         const apiKey = process.env.NOWPAYMENTS_API_KEY;
         if (!apiKey) {
+          console.error("[crypto-status] NOWPAYMENTS_API_KEY is missing from env");
           return Response.json(
             { success: false, error: "NOWPAYMENTS_API_KEY not configured" },
             { status: 500 },
           );
         }
+        console.log(`[crypto-status] using API key ${maskKey(apiKey)}`);
         const url = new URL(request.url);
         const paymentId = url.searchParams.get("payment_id");
         if (!paymentId) {
@@ -18,8 +21,9 @@ export const Route = createFileRoute("/api/crypto-status")({
         }
 
         try {
+          const base = await getNowPaymentsBase(apiKey);
           const res = await fetch(
-            `https://api.sandbox.nowpayments.io/v1/payment/${encodeURIComponent(paymentId)}`,
+            `${base}/payment/${encodeURIComponent(paymentId)}`,
             { headers: { "x-api-key": apiKey } },
           );
           const data = (await res.json().catch(() => ({}))) as {
@@ -29,6 +33,7 @@ export const Route = createFileRoute("/api/crypto-status")({
             pay_amount?: number;
           };
           if (!res.ok) {
+            console.error(`[crypto-status] ${base} -> ${res.status}`, data);
             return Response.json({
               success: false,
               error: data.message ?? `NOWPayments error ${res.status}`,
