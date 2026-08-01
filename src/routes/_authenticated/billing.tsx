@@ -208,6 +208,7 @@ function BillingPage() {
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {PLANS.map((p) => {
             const active = p.id === currentPlanId;
+            const tooSmall = belowMin(p.price);
             return (
               <Card
                 key={p.id}
@@ -243,14 +244,19 @@ function BillingPage() {
                 <Button
                   className="mt-5"
                   variant={active ? "outline" : p.recommended ? "default" : "secondary"}
-                  disabled={active || chargeMut.isPending}
+                  disabled={active || tooSmall || chargeMut.isPending}
                   onClick={() => chargeMut.mutate(p)}
                 >
                   {chargeMut.isPending && chargeMut.variables?.id === p.id ? (
                     <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
                   ) : null}
-                  {active ? "Current plan" : `Upgrade — ${p.price}/mo`}
+                  {active ? "Current plan" : tooSmall ? "Below crypto minimum" : `Upgrade — ${p.price}/mo`}
                 </Button>
+                {tooSmall && (
+                  <p className="mt-2 text-[11px] text-amber-400">
+                    Minimum crypto payment is ~${minUsd?.toFixed(2)} ({minInfo?.min_amount} USDT TRC20).
+                  </p>
+                )}
               </Card>
             );
           })}
