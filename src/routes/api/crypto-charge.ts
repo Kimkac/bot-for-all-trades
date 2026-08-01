@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { getNowPaymentsBase, maskKey } from "@/lib/nowpayments.server";
+import { getNowPaymentsBase, getMinAmount, maskKey } from "@/lib/nowpayments.server";
 
 export const Route = createFileRoute("/api/crypto-charge")({
   server: {
@@ -32,6 +32,28 @@ export const Route = createFileRoute("/api/crypto-charge")({
 
         try {
           const base = await getNowPaymentsBase(apiKey);
+          const payCurrency = "usdttrc20";
+
+          // Block charges below the NOWPayments minimum for this coin/network.
+          try {
+            const min = await getMinAmount(apiKey, payCurrency);
+            const minUsd = min.min_usd;
+            if (minUsd !== null && amount < minUsd) {
+              return Response.json(
+                {
+                  success: false,
+                  error: `Minimum payment for USDT (TRC20) is about $${minUsd.toFixed(2)} (${min.min_amount} USDT). Requested $${amount.toFixed(2)} is below the network minimum.`,
+                  min_usd: minUsd,
+                  min_amount: min.min_amount,
+                  currency: payCurrency,
+                },
+                { status: 400 },
+              );
+            }
+          } catch (minErr) {
+            console.warn("[crypto-charge] min-amount check skipped:", minErr);
+          }
+
           const res = await fetch(`${base}/payment`, {
             method: "POST",
             headers: {
@@ -41,7 +63,7 @@ export const Route = createFileRoute("/api/crypto-charge")({
             body: JSON.stringify({
               price_amount: amount,
               price_currency: "usd",
-              pay_currency: "usdttrc20",
+              pay_currency: payCurrency,
               order_id: `${reference}-${Date.now()}`,
               order_description: "Trading Bot Payment",
             }),
