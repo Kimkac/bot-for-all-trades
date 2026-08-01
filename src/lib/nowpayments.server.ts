@@ -39,3 +39,47 @@ export async function getNowPaymentsBase(apiKey: string): Promise<string> {
   );
   return cachedBase;
 }
+
+export interface MinAmountInfo {
+  currency: string;
+  /** Minimum payable amount denominated in the pay currency (e.g. USDT). */
+  min_amount: number;
+  /** Same minimum expressed in USD, when NOWPayments provides a fiat equivalent. */
+  min_usd: number | null;
+}
+
+const minCache = new Map<string, { value: MinAmountInfo; at: number }>();
+const MIN_TTL_MS = 5 * 60 * 1000;
+
+/**
+ * Fetches the minimum payment amount NOWPayments accepts for a coin/network.
+ * Cached briefly since the value moves only with network fees.
+ */
+export async function getMinAmount(apiKey: string, payCurrency: string): Promise<MinAmountInfo> {
+  const key = payCurrency.toLowerCase();
+  const hit = minCache.get(key);
+  if (hit && Date.now() - hit.at < MIN_TTL_MS) return hit.value;
+
+  const base = await getNowPaymentsBase(apiKey);
+  const url = `${base}/min-amount?currency_from=${encodeURIComponent(key)}&currency_to=${encodeURIComponent(key)}&fiat_equivalent=usd`;
+  const res = await fetch(url, { headers: { "x-api-key": apiKey } });
+  const data = (await res.json().catch(() => ({}))) as {
+    min_amount?: number | string;
+    fiat_equivalent?: number | string;
+    message?: string;
+  };
+  if (!res.ok) {
+    console.error(`[nowpayments] min-amount ${key} -> ${res.status}`, data);
+    throw new Error(data.message ?? `Could not load minimum amount for ${payCurrency.toUpperCase()}`);
+  }
+
+  const min_amount = Number(data.min_amount ?? 0);
+  const fiat = Number(data.fiat_equivalent ?? 0);
+  const info: MinAmountInfo = {
+    currency: key,
+    min_amount: Number.isFinite(min_amount) ? min_amount : 0,
+    min_usd: Number.isFinite(fiat) && fiat > 0 ? fiat : null,
+  };
+  minCache.set(key, { value: info, at: Date.now() });
+  return info;
+}
