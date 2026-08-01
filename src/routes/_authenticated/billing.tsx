@@ -66,6 +66,16 @@ interface ChargeResult {
   pay_amount?: number;
   pay_currency?: string;
   error?: string;
+  min_usd?: number;
+  min_amount?: number;
+}
+
+interface MinAmountResult {
+  success: boolean;
+  currency?: string;
+  min_amount?: number;
+  min_usd?: number | null;
+  error?: string;
 }
 
 function BillingPage() {
@@ -79,8 +89,22 @@ function BillingPage() {
   const [charge, setCharge] = useState<ChargeResult | null>(null);
   const [testResponse, setTestResponse] = useState<ChargeResult | null>(null);
 
+  const { data: minInfo } = useQuery({
+    queryKey: ["nowpayments-min", "usdttrc20"],
+    queryFn: async () => {
+      const res = await fetch("/api/crypto-min?currency=usdttrc20");
+      return (await res.json()) as MinAmountResult;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+  const minUsd = minInfo?.success && typeof minInfo.min_usd === "number" ? minInfo.min_usd : null;
+  const belowMin = (price: number) => minUsd !== null && price < minUsd;
+  const minMessage = (price: number) =>
+    `Minimum crypto payment is about $${minUsd?.toFixed(2)} (${minInfo?.min_amount} USDT TRC20). $${price} is below the network minimum.`;
+
   const chargeMut = useMutation({
     mutationFn: async (plan: Plan) => {
+      if (belowMin(plan.price)) throw new Error(minMessage(plan.price));
       const res = await fetch("/api/crypto-charge", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -101,6 +125,7 @@ function BillingPage() {
 
   const testChargeMut = useMutation({
     mutationFn: async () => {
+      if (belowMin(1)) throw new Error(minMessage(1));
       const res = await fetch("/api/crypto-charge", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
