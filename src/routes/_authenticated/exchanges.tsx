@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { Plus, Trash2, CheckCircle2, AlertTriangle, Loader2, ShieldAlert } from "lucide-react";
+import { Plus, Trash2, CheckCircle2, AlertTriangle, Loader2, ShieldAlert, ExternalLink, HelpCircle, ChevronDown, Sparkles } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
@@ -231,6 +231,8 @@ function ConnectDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v
             <a href={meta.docsUrl} target="_blank" rel="noreferrer" className="underline">Docs</a>
           </div>
 
+          <BeginnerGuide meta={meta} mode={mode} />
+
           <div className="space-y-1.5">
             <Label htmlFor="label">Label</Label>
             <Input id="label" placeholder="e.g. Binance Testnet" value={label} onChange={(e) => setLabel(e.target.value)} />
@@ -272,5 +274,84 @@ function ConnectDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function BeginnerGuide({
+  meta,
+  mode,
+}: {
+  meta: (typeof EXCHANGES)[ExchangeKind];
+  mode: ExchangeMode;
+}) {
+  const [openGuide, setOpenGuide] = useState(true);
+  const [openHelp, setOpenHelp] = useState(false);
+  const steps = meta.setupSteps[mode];
+
+  return (
+    <div className="rounded-md border border-primary/25 bg-primary/5">
+      <button
+        type="button"
+        onClick={() => setOpenGuide((v) => !v)}
+        className="flex w-full items-center gap-2 p-3 text-left"
+        aria-expanded={openGuide}
+      >
+        <Sparkles className="h-4 w-4 shrink-0 text-primary" />
+        <span className="font-mono text-[11px] uppercase tracking-wider">
+          New here? Get {meta.label} {mode === "demo" ? meta.demoLabel : meta.liveLabel} keys
+        </span>
+        <ChevronDown className={`ml-auto h-4 w-4 transition-transform ${openGuide ? "rotate-180" : ""}`} />
+      </button>
+
+      {openGuide && (
+        <div className="space-y-3 border-t border-primary/20 p-3 pt-3">
+          <ol className="space-y-2 text-xs text-muted-foreground">
+            {steps.map((s, i) => (
+              <li key={i} className="flex gap-2">
+                <span className="mt-px grid h-4 w-4 shrink-0 place-items-center rounded-full bg-primary/15 font-mono text-[10px] text-primary">
+                  {i + 1}
+                </span>
+                <span className="leading-relaxed">{s}</span>
+              </li>
+            ))}
+          </ol>
+
+          <a
+            href={meta.docsUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1.5 text-xs font-medium text-primary underline-offset-4 hover:underline"
+          >
+            Open {meta.label} key page <ExternalLink className="h-3 w-3" />
+          </a>
+
+          <div className="rounded-md border border-border/60 bg-background/40 p-2.5 text-[11px] text-muted-foreground">
+            Tip: start with <strong className="text-foreground">{meta.demoLabel}</strong>. It uses fake money, so a
+            wrong key or a bad strategy costs you nothing.
+          </div>
+
+          <div>
+            <button
+              type="button"
+              onClick={() => setOpenHelp((v) => !v)}
+              className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+              aria-expanded={openHelp}
+            >
+              <HelpCircle className="h-3.5 w-3.5" /> Something went wrong?
+              <ChevronDown className={`h-3.5 w-3.5 transition-transform ${openHelp ? "rotate-180" : ""}`} />
+            </button>
+            {openHelp && (
+              <ul className="mt-2 space-y-2">
+                {meta.troubleshooting.map((t) => (
+                  <li key={t.problem} className="text-[11px] leading-relaxed text-muted-foreground">
+                    <span className="font-mono text-foreground">{t.problem}</span> — {t.fix}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
