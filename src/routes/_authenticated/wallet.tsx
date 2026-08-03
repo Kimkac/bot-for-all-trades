@@ -2,10 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import {
-  AlertTriangle, Check, CheckCircle2, Copy, Loader2, Wallet as WalletIcon,
-  ArrowDownToLine, History,
-} from "lucide-react";
+import { TriangleAlert as AlertTriangle, Check, CircleCheck as CheckCircle2, Copy, Loader as Loader2, Wallet as WalletIcon, ArrowDownToLine, History } from "lucide-react";
 import { PageHeader } from "@/components/AppShell";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
