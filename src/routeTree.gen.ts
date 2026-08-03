@@ -14,10 +14,13 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
+import { Route as AuthenticatedAviatorRouteImport } from './routes/_authenticated/aviator'
 import { Route as AuthenticatedBillingRouteImport } from './routes/_authenticated/billing'
 import { Route as AuthenticatedBotsRouteImport } from './routes/_authenticated/bots'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedExchangesRouteImport } from './routes/_authenticated/exchanges'
+import { Route as AuthenticatedWalletRouteImport } from './routes/_authenticated/wallet'
+import { Route as ApiAviatorRoundRouteImport } from './routes/api/aviator-round'
 import { Route as ApiCryptoChargeRouteImport } from './routes/api/crypto-charge'
 import { Route as ApiCryptoMinRouteImport } from './routes/api/crypto-min'
 import { Route as ApiCryptoStatusRouteImport } from './routes/api/crypto-status'
@@ -48,6 +51,11 @@ const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   path: '/sitemap.xml',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedAviatorRoute = AuthenticatedAviatorRouteImport.update({
+  id: '/aviator',
+  path: '/aviator',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedBillingRoute = AuthenticatedBillingRouteImport.update({
   id: '/billing',
   path: '/billing',
@@ -67,6 +75,16 @@ const AuthenticatedExchangesRoute = AuthenticatedExchangesRouteImport.update({
   id: '/exchanges',
   path: '/exchanges',
   getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedWalletRoute = AuthenticatedWalletRouteImport.update({
+  id: '/wallet',
+  path: '/wallet',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const ApiAviatorRoundRoute = ApiAviatorRoundRouteImport.update({
+  id: '/api/aviator-round',
+  path: '/api/aviator-round',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ApiCryptoChargeRoute = ApiCryptoChargeRouteImport.update({
   id: '/api/crypto-charge',
@@ -99,10 +117,13 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/aviator': typeof AuthenticatedAviatorRoute
   '/billing': typeof AuthenticatedBillingRoute
   '/bots': typeof AuthenticatedBotsRouteWithChildren
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/exchanges': typeof AuthenticatedExchangesRoute
+  '/wallet': typeof AuthenticatedWalletRoute
+  '/api/aviator-round': typeof ApiAviatorRoundRoute
   '/api/crypto-charge': typeof ApiCryptoChargeRoute
   '/api/crypto-min': typeof ApiCryptoMinRoute
   '/api/crypto-status': typeof ApiCryptoStatusRoute
@@ -114,10 +135,13 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/aviator': typeof AuthenticatedAviatorRoute
   '/billing': typeof AuthenticatedBillingRoute
   '/bots': typeof AuthenticatedBotsRouteWithChildren
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/exchanges': typeof AuthenticatedExchangesRoute
+  '/wallet': typeof AuthenticatedWalletRoute
+  '/api/aviator-round': typeof ApiAviatorRoundRoute
   '/api/crypto-charge': typeof ApiCryptoChargeRoute
   '/api/crypto-min': typeof ApiCryptoMinRoute
   '/api/crypto-status': typeof ApiCryptoStatusRoute
@@ -131,10 +155,13 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/_authenticated/aviator': typeof AuthenticatedAviatorRoute
   '/_authenticated/billing': typeof AuthenticatedBillingRoute
   '/_authenticated/bots': typeof AuthenticatedBotsRouteWithChildren
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/exchanges': typeof AuthenticatedExchangesRoute
+  '/_authenticated/wallet': typeof AuthenticatedWalletRoute
+  '/api/aviator-round': typeof ApiAviatorRoundRoute
   '/api/crypto-charge': typeof ApiCryptoChargeRoute
   '/api/crypto-min': typeof ApiCryptoMinRoute
   '/api/crypto-status': typeof ApiCryptoStatusRoute
@@ -148,10 +175,13 @@ export interface FileRouteTypes {
     | '/auth'
     | '/reset-password'
     | '/sitemap.xml'
+    | '/aviator'
     | '/billing'
     | '/bots'
     | '/dashboard'
     | '/exchanges'
+    | '/wallet'
+    | '/api/aviator-round'
     | '/api/crypto-charge'
     | '/api/crypto-min'
     | '/api/crypto-status'
@@ -163,10 +193,13 @@ export interface FileRouteTypes {
     | '/auth'
     | '/reset-password'
     | '/sitemap.xml'
+    | '/aviator'
     | '/billing'
     | '/bots'
     | '/dashboard'
     | '/exchanges'
+    | '/wallet'
+    | '/api/aviator-round'
     | '/api/crypto-charge'
     | '/api/crypto-min'
     | '/api/crypto-status'
@@ -179,10 +212,13 @@ export interface FileRouteTypes {
     | '/auth'
     | '/reset-password'
     | '/sitemap.xml'
+    | '/_authenticated/aviator'
     | '/_authenticated/billing'
     | '/_authenticated/bots'
     | '/_authenticated/dashboard'
     | '/_authenticated/exchanges'
+    | '/_authenticated/wallet'
+    | '/api/aviator-round'
     | '/api/crypto-charge'
     | '/api/crypto-min'
     | '/api/crypto-status'
@@ -196,6 +232,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  ApiAviatorRoundRoute: typeof ApiAviatorRoundRoute
   ApiCryptoChargeRoute: typeof ApiCryptoChargeRoute
   ApiCryptoMinRoute: typeof ApiCryptoMinRoute
   ApiCryptoStatusRoute: typeof ApiCryptoStatusRoute
@@ -239,6 +276,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SitemapDotxmlRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/aviator': {
+      id: '/_authenticated/aviator'
+      path: '/aviator'
+      fullPath: '/aviator'
+      preLoaderRoute: typeof AuthenticatedAviatorRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/billing': {
       id: '/_authenticated/billing'
       path: '/billing'
@@ -266,6 +310,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/exchanges'
       preLoaderRoute: typeof AuthenticatedExchangesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/wallet': {
+      id: '/_authenticated/wallet'
+      path: '/wallet'
+      fullPath: '/wallet'
+      preLoaderRoute: typeof AuthenticatedWalletRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/api/aviator-round': {
+      id: '/api/aviator-round'
+      path: '/api/aviator-round'
+      fullPath: '/api/aviator-round'
+      preLoaderRoute: typeof ApiAviatorRoundRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/crypto-charge': {
       id: '/api/crypto-charge'
@@ -317,17 +375,21 @@ const AuthenticatedBotsRouteWithChildren =
   AuthenticatedBotsRoute._addFileChildren(AuthenticatedBotsRouteChildren)
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedAviatorRoute: typeof AuthenticatedAviatorRoute
   AuthenticatedBillingRoute: typeof AuthenticatedBillingRoute
   AuthenticatedBotsRoute: typeof AuthenticatedBotsRouteWithChildren
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedExchangesRoute: typeof AuthenticatedExchangesRoute
+  AuthenticatedWalletRoute: typeof AuthenticatedWalletRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedAviatorRoute: AuthenticatedAviatorRoute,
   AuthenticatedBillingRoute: AuthenticatedBillingRoute,
   AuthenticatedBotsRoute: AuthenticatedBotsRouteWithChildren,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedExchangesRoute: AuthenticatedExchangesRoute,
+  AuthenticatedWalletRoute: AuthenticatedWalletRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
@@ -339,6 +401,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  ApiAviatorRoundRoute: ApiAviatorRoundRoute,
   ApiCryptoChargeRoute: ApiCryptoChargeRoute,
   ApiCryptoMinRoute: ApiCryptoMinRoute,
   ApiCryptoStatusRoute: ApiCryptoStatusRoute,

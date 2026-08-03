@@ -1,11 +1,13 @@
 import { Link, Outlet, useLocation, useNavigate } from "@tanstack/react-router";
-import { LayoutDashboard, Plug, Bot, LogOut, CreditCard } from "lucide-react";
+import { LayoutDashboard, Plug, Bot, LogOut, CreditCard, Plane, Wallet } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 
 const NAV = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { to: "/aviator", label: "Aviator", icon: Plane },
+  { to: "/wallet", label: "Wallet", icon: Wallet },
   { to: "/exchanges", label: "Exchanges", icon: Plug },
   { to: "/bots", label: "Bots", icon: Bot },
   { to: "/billing", label: "Plans", icon: CreditCard },
