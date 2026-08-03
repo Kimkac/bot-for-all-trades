@@ -18,11 +18,13 @@ import { Route as AuthenticatedBillingRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedBotsRouteImport } from './routes/_authenticated/bots'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedExchangesRouteImport } from './routes/_authenticated/exchanges'
+import { Route as AuthenticatedHealthRouteImport } from './routes/_authenticated/health'
 import { Route as ApiCryptoChargeRouteImport } from './routes/api/crypto-charge'
 import { Route as ApiCryptoMinRouteImport } from './routes/api/crypto-min'
 import { Route as ApiCryptoStatusRouteImport } from './routes/api/crypto-status'
 import { Route as AuthenticatedBotsBotIdRouteImport } from './routes/_authenticated/bots.$botId'
 import { Route as ApiPublicBotTickRouteImport } from './routes/api/public/bot-tick'
+import { Route as ApiPublicHealthCheckRouteImport } from './routes/api/public/health-check'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -68,6 +70,11 @@ const AuthenticatedExchangesRoute = AuthenticatedExchangesRouteImport.update({
   path: '/exchanges',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedHealthRoute = AuthenticatedHealthRouteImport.update({
+  id: '/health',
+  path: '/health',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const ApiCryptoChargeRoute = ApiCryptoChargeRouteImport.update({
   id: '/api/crypto-charge',
   path: '/api/crypto-charge',
@@ -93,6 +100,11 @@ const ApiPublicBotTickRoute = ApiPublicBotTickRouteImport.update({
   path: '/api/public/bot-tick',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicHealthCheckRoute = ApiPublicHealthCheckRouteImport.update({
+  id: '/api/public/health-check',
+  path: '/api/public/health-check',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -103,11 +115,13 @@ export interface FileRoutesByFullPath {
   '/bots': typeof AuthenticatedBotsRouteWithChildren
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/exchanges': typeof AuthenticatedExchangesRoute
+  '/health': typeof AuthenticatedHealthRoute
   '/api/crypto-charge': typeof ApiCryptoChargeRoute
   '/api/crypto-min': typeof ApiCryptoMinRoute
   '/api/crypto-status': typeof ApiCryptoStatusRoute
   '/bots/$botId': typeof AuthenticatedBotsBotIdRoute
   '/api/public/bot-tick': typeof ApiPublicBotTickRoute
+  '/api/public/health-check': typeof ApiPublicHealthCheckRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -118,11 +132,13 @@ export interface FileRoutesByTo {
   '/bots': typeof AuthenticatedBotsRouteWithChildren
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/exchanges': typeof AuthenticatedExchangesRoute
+  '/health': typeof AuthenticatedHealthRoute
   '/api/crypto-charge': typeof ApiCryptoChargeRoute
   '/api/crypto-min': typeof ApiCryptoMinRoute
   '/api/crypto-status': typeof ApiCryptoStatusRoute
   '/bots/$botId': typeof AuthenticatedBotsBotIdRoute
   '/api/public/bot-tick': typeof ApiPublicBotTickRoute
+  '/api/public/health-check': typeof ApiPublicHealthCheckRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -135,11 +151,13 @@ export interface FileRoutesById {
   '/_authenticated/bots': typeof AuthenticatedBotsRouteWithChildren
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/exchanges': typeof AuthenticatedExchangesRoute
+  '/_authenticated/health': typeof AuthenticatedHealthRoute
   '/api/crypto-charge': typeof ApiCryptoChargeRoute
   '/api/crypto-min': typeof ApiCryptoMinRoute
   '/api/crypto-status': typeof ApiCryptoStatusRoute
   '/_authenticated/bots/$botId': typeof AuthenticatedBotsBotIdRoute
   '/api/public/bot-tick': typeof ApiPublicBotTickRoute
+  '/api/public/health-check': typeof ApiPublicHealthCheckRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -152,11 +170,13 @@ export interface FileRouteTypes {
     | '/bots'
     | '/dashboard'
     | '/exchanges'
+    | '/health'
     | '/api/crypto-charge'
     | '/api/crypto-min'
     | '/api/crypto-status'
     | '/bots/$botId'
     | '/api/public/bot-tick'
+    | '/api/public/health-check'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -167,11 +187,13 @@ export interface FileRouteTypes {
     | '/bots'
     | '/dashboard'
     | '/exchanges'
+    | '/health'
     | '/api/crypto-charge'
     | '/api/crypto-min'
     | '/api/crypto-status'
     | '/bots/$botId'
     | '/api/public/bot-tick'
+    | '/api/public/health-check'
   id:
     | '__root__'
     | '/'
@@ -183,11 +205,13 @@ export interface FileRouteTypes {
     | '/_authenticated/bots'
     | '/_authenticated/dashboard'
     | '/_authenticated/exchanges'
+    | '/_authenticated/health'
     | '/api/crypto-charge'
     | '/api/crypto-min'
     | '/api/crypto-status'
     | '/_authenticated/bots/$botId'
     | '/api/public/bot-tick'
+    | '/api/public/health-check'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -200,6 +224,7 @@ export interface RootRouteChildren {
   ApiCryptoMinRoute: typeof ApiCryptoMinRoute
   ApiCryptoStatusRoute: typeof ApiCryptoStatusRoute
   ApiPublicBotTickRoute: typeof ApiPublicBotTickRoute
+  ApiPublicHealthCheckRoute: typeof ApiPublicHealthCheckRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -267,6 +292,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedExchangesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/health': {
+      id: '/_authenticated/health'
+      path: '/health'
+      fullPath: '/health'
+      preLoaderRoute: typeof AuthenticatedHealthRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/api/crypto-charge': {
       id: '/api/crypto-charge'
       path: '/api/crypto-charge'
@@ -302,6 +334,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicBotTickRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/health-check': {
+      id: '/api/public/health-check'
+      path: '/api/public/health-check'
+      fullPath: '/api/public/health-check'
+      preLoaderRoute: typeof ApiPublicHealthCheckRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -321,6 +360,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedBotsRoute: typeof AuthenticatedBotsRouteWithChildren
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedExchangesRoute: typeof AuthenticatedExchangesRoute
+  AuthenticatedHealthRoute: typeof AuthenticatedHealthRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -328,6 +368,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedBotsRoute: AuthenticatedBotsRouteWithChildren,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedExchangesRoute: AuthenticatedExchangesRoute,
+  AuthenticatedHealthRoute: AuthenticatedHealthRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
@@ -343,17 +384,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiCryptoMinRoute: ApiCryptoMinRoute,
   ApiCryptoStatusRoute: ApiCryptoStatusRoute,
   ApiPublicBotTickRoute: ApiPublicBotTickRoute,
+  ApiPublicHealthCheckRoute: ApiPublicHealthCheckRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

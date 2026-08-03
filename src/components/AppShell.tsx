@@ -1,6 +1,8 @@
 import { Link, Outlet, useLocation, useNavigate } from "@tanstack/react-router";
-import { LayoutDashboard, Plug, Bot, LogOut, CreditCard } from "lucide-react";
-import { useQueryClient } from "@tanstack/react-query";
+import { LayoutDashboard, Plug, Bot, LogOut, CreditCard, HeartPulse } from "lucide-react";
+import { useEffect, useRef } from "react";
+import { toast } from "sonner";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 
@@ -9,12 +11,39 @@ const NAV = [
   { to: "/exchanges", label: "Exchanges", icon: Plug },
   { to: "/bots", label: "Bots", icon: Bot },
   { to: "/billing", label: "Plans", icon: CreditCard },
+  { to: "/health", label: "Site health", icon: HeartPulse },
 ] as const;
 
 export function AppShell() {
   const location = useLocation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const alerted = useRef<string | null>(null);
+
+  const { data: lastCheck } = useQuery({
+    queryKey: ["health-checks", "latest"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("health_checks")
+        .select("id, ok, failed_count, checked_at")
+        .order("checked_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    refetchInterval: 60_000,
+  });
+
+  useEffect(() => {
+    if (!lastCheck || lastCheck.ok) return;
+    if (alerted.current === lastCheck.id) return;
+    alerted.current = lastCheck.id;
+    toast.error(`Site health: ${lastCheck.failed_count} check(s) failing`, {
+      description: "Open Site health for details.",
+      duration: 10_000,
+    });
+  }, [lastCheck]);
 
   async function signOut() {
     await queryClient.cancelQueries();
@@ -52,6 +81,9 @@ export function AppShell() {
               >
                 <item.icon className="h-4 w-4" />
                 {item.label}
+                {item.to === "/health" && lastCheck && !lastCheck.ok && (
+                  <span className="ml-auto h-2 w-2 rounded-full bg-destructive" />
+                )}
               </Link>
             );
           })}
