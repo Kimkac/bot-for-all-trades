@@ -23,6 +23,7 @@ import { Route as ApiCryptoMinRouteImport } from './routes/api/crypto-min'
 import { Route as ApiCryptoStatusRouteImport } from './routes/api/crypto-status'
 import { Route as AuthenticatedBotsBotIdRouteImport } from './routes/_authenticated/bots.$botId'
 import { Route as ApiPublicBotTickRouteImport } from './routes/api/public/bot-tick'
+import { Route as ApiPublicHealthCheckRouteImport } from './routes/api/public/health-check'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -93,6 +94,11 @@ const ApiPublicBotTickRoute = ApiPublicBotTickRouteImport.update({
   path: '/api/public/bot-tick',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicHealthCheckRoute = ApiPublicHealthCheckRouteImport.update({
+  id: '/api/public/health-check',
+  path: '/api/public/health-check',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -108,6 +114,7 @@ export interface FileRoutesByFullPath {
   '/api/crypto-status': typeof ApiCryptoStatusRoute
   '/bots/$botId': typeof AuthenticatedBotsBotIdRoute
   '/api/public/bot-tick': typeof ApiPublicBotTickRoute
+  '/api/public/health-check': typeof ApiPublicHealthCheckRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -123,6 +130,7 @@ export interface FileRoutesByTo {
   '/api/crypto-status': typeof ApiCryptoStatusRoute
   '/bots/$botId': typeof AuthenticatedBotsBotIdRoute
   '/api/public/bot-tick': typeof ApiPublicBotTickRoute
+  '/api/public/health-check': typeof ApiPublicHealthCheckRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -140,6 +148,7 @@ export interface FileRoutesById {
   '/api/crypto-status': typeof ApiCryptoStatusRoute
   '/_authenticated/bots/$botId': typeof AuthenticatedBotsBotIdRoute
   '/api/public/bot-tick': typeof ApiPublicBotTickRoute
+  '/api/public/health-check': typeof ApiPublicHealthCheckRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -157,6 +166,7 @@ export interface FileRouteTypes {
     | '/api/crypto-status'
     | '/bots/$botId'
     | '/api/public/bot-tick'
+    | '/api/public/health-check'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -172,6 +182,7 @@ export interface FileRouteTypes {
     | '/api/crypto-status'
     | '/bots/$botId'
     | '/api/public/bot-tick'
+    | '/api/public/health-check'
   id:
     | '__root__'
     | '/'
@@ -188,6 +199,7 @@ export interface FileRouteTypes {
     | '/api/crypto-status'
     | '/_authenticated/bots/$botId'
     | '/api/public/bot-tick'
+    | '/api/public/health-check'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -200,6 +212,7 @@ export interface RootRouteChildren {
   ApiCryptoMinRoute: typeof ApiCryptoMinRoute
   ApiCryptoStatusRoute: typeof ApiCryptoStatusRoute
   ApiPublicBotTickRoute: typeof ApiPublicBotTickRoute
+  ApiPublicHealthCheckRoute: typeof ApiPublicHealthCheckRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -302,6 +315,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicBotTickRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/health-check': {
+      id: '/api/public/health-check'
+      path: '/api/public/health-check'
+      fullPath: '/api/public/health-check'
+      preLoaderRoute: typeof ApiPublicHealthCheckRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -343,6 +363,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiCryptoMinRoute: ApiCryptoMinRoute,
   ApiCryptoStatusRoute: ApiCryptoStatusRoute,
   ApiPublicBotTickRoute: ApiPublicBotTickRoute,
+  ApiPublicHealthCheckRoute: ApiPublicHealthCheckRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
