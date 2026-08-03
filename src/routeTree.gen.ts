@@ -18,6 +18,7 @@ import { Route as AuthenticatedBillingRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedBotsRouteImport } from './routes/_authenticated/bots'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedExchangesRouteImport } from './routes/_authenticated/exchanges'
+import { Route as AuthenticatedHealthRouteImport } from './routes/_authenticated/health'
 import { Route as ApiCryptoChargeRouteImport } from './routes/api/crypto-charge'
 import { Route as ApiCryptoMinRouteImport } from './routes/api/crypto-min'
 import { Route as ApiCryptoStatusRouteImport } from './routes/api/crypto-status'
@@ -69,6 +70,11 @@ const AuthenticatedExchangesRoute = AuthenticatedExchangesRouteImport.update({
   path: '/exchanges',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedHealthRoute = AuthenticatedHealthRouteImport.update({
+  id: '/health',
+  path: '/health',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const ApiCryptoChargeRoute = ApiCryptoChargeRouteImport.update({
   id: '/api/crypto-charge',
   path: '/api/crypto-charge',
@@ -109,6 +115,7 @@ export interface FileRoutesByFullPath {
   '/bots': typeof AuthenticatedBotsRouteWithChildren
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/exchanges': typeof AuthenticatedExchangesRoute
+  '/health': typeof AuthenticatedHealthRoute
   '/api/crypto-charge': typeof ApiCryptoChargeRoute
   '/api/crypto-min': typeof ApiCryptoMinRoute
   '/api/crypto-status': typeof ApiCryptoStatusRoute
@@ -125,6 +132,7 @@ export interface FileRoutesByTo {
   '/bots': typeof AuthenticatedBotsRouteWithChildren
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/exchanges': typeof AuthenticatedExchangesRoute
+  '/health': typeof AuthenticatedHealthRoute
   '/api/crypto-charge': typeof ApiCryptoChargeRoute
   '/api/crypto-min': typeof ApiCryptoMinRoute
   '/api/crypto-status': typeof ApiCryptoStatusRoute
@@ -143,6 +151,7 @@ export interface FileRoutesById {
   '/_authenticated/bots': typeof AuthenticatedBotsRouteWithChildren
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/exchanges': typeof AuthenticatedExchangesRoute
+  '/_authenticated/health': typeof AuthenticatedHealthRoute
   '/api/crypto-charge': typeof ApiCryptoChargeRoute
   '/api/crypto-min': typeof ApiCryptoMinRoute
   '/api/crypto-status': typeof ApiCryptoStatusRoute
@@ -161,6 +170,7 @@ export interface FileRouteTypes {
     | '/bots'
     | '/dashboard'
     | '/exchanges'
+    | '/health'
     | '/api/crypto-charge'
     | '/api/crypto-min'
     | '/api/crypto-status'
@@ -177,6 +187,7 @@ export interface FileRouteTypes {
     | '/bots'
     | '/dashboard'
     | '/exchanges'
+    | '/health'
     | '/api/crypto-charge'
     | '/api/crypto-min'
     | '/api/crypto-status'
@@ -194,6 +205,7 @@ export interface FileRouteTypes {
     | '/_authenticated/bots'
     | '/_authenticated/dashboard'
     | '/_authenticated/exchanges'
+    | '/_authenticated/health'
     | '/api/crypto-charge'
     | '/api/crypto-min'
     | '/api/crypto-status'
@@ -280,6 +292,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedExchangesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/health': {
+      id: '/_authenticated/health'
+      path: '/health'
+      fullPath: '/health'
+      preLoaderRoute: typeof AuthenticatedHealthRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/api/crypto-charge': {
       id: '/api/crypto-charge'
       path: '/api/crypto-charge'
@@ -341,6 +360,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedBotsRoute: typeof AuthenticatedBotsRouteWithChildren
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedExchangesRoute: typeof AuthenticatedExchangesRoute
+  AuthenticatedHealthRoute: typeof AuthenticatedHealthRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -348,6 +368,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedBotsRoute: AuthenticatedBotsRouteWithChildren,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedExchangesRoute: AuthenticatedExchangesRoute,
+  AuthenticatedHealthRoute: AuthenticatedHealthRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
