@@ -156,6 +156,36 @@ export type Database = {
         }
         Relationships: []
       }
+      health_checks: {
+        Row: {
+          base_url: string
+          checked_at: string
+          duration_ms: number
+          failed_count: number
+          id: string
+          ok: boolean
+          results: Json
+        }
+        Insert: {
+          base_url: string
+          checked_at?: string
+          duration_ms?: number
+          failed_count?: number
+          id?: string
+          ok: boolean
+          results?: Json
+        }
+        Update: {
+          base_url?: string
+          checked_at?: string
+          duration_ms?: number
+          failed_count?: number
+          id?: string
+          ok?: boolean
+          results?: Json
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
